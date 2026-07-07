@@ -246,13 +246,13 @@ enum LayoutSolver {
         // planner, so use legacy movability rather than macOS 27's broader
         // layout-anchor policy. The Thaw icon is a control item but must always
         // be visible, so we admit it here.
-        let leftmostItems = items
-            .filter {
+        let leftmostItems = MenuBarItem.sortByLeadingEdge(
+            items.filter {
                 $0.bounds.maxX <= observation.hiddenBounds.minX &&
                     $0.tag.isMovableInLegacySectionLayout &&
                     (!$0.isControlItem || $0.tag.matchesVisibleControlItem)
             }
-            .sorted { $0.bounds.minX < $1.bounds.minX }
+        )
 
         guard !leftmostItems.isEmpty else {
             return .noop(reason: .noLeftmostItems)
@@ -506,7 +506,9 @@ enum LayoutSolver {
         // order so leftmost-from-visible lands at the deepest end of
         // hidden.
         var controlSet: Set<String> = [controlUIDs.hidden]
-        if let ahUID = controlUIDs.alwaysHidden { controlSet.insert(ahUID) }
+        if let ahUID = controlUIDs.alwaysHidden {
+            controlSet.insert(ahUID)
+        }
 
         let hiddenStart = desiredFiltered.firstIndex(of: controlUIDs.hidden)
             .map { $0 + 1 } ?? desiredFiltered.endIndex
@@ -619,11 +621,7 @@ enum LayoutSolver {
 
             // Fallback to section boundary.
             if destination == nil {
-                let targetSection: MenuBarSection.Name = switch targetKey {
-                case "hidden": .hidden
-                case "alwaysHidden": .alwaysHidden
-                default: .visible
-                }
+                let targetSection = MenuBarSection.Name(rawValue: targetKey) ?? .visible
                 destination = .sectionBoundary(targetSection)
             }
 
@@ -665,7 +663,9 @@ enum LayoutSolver {
         }
 
         var controlSet: Set<String> = [hiddenCtrlUID]
-        if let ahUID = ahCtrlUID { controlSet.insert(ahUID) }
+        if let ahUID = ahCtrlUID {
+            controlSet.insert(ahUID)
+        }
 
         let ahUIDs = desiredFiltered.filter {
             !controlSet.contains($0) && (sectionMap[$0] ?? "visible") == "alwaysHidden"
@@ -679,7 +679,9 @@ enum LayoutSolver {
 
         var fullSequence = [String]()
         fullSequence.append(contentsOf: ahUIDs)
-        if let ahCtrlUID { fullSequence.append(ahCtrlUID) }
+        if let ahCtrlUID {
+            fullSequence.append(ahCtrlUID)
+        }
         fullSequence.append(contentsOf: hiddenUIDs)
         fullSequence.append(hiddenCtrlUID)
         fullSequence.append(contentsOf: visibleUIDs)
@@ -962,23 +964,16 @@ enum LayoutSolver {
         id.split(separator: ":", maxSplits: 2).prefix(2).joined(separator: ":")
     }
 
-    /// Maps a persisted section key string to its enum value.
+    /// Maps a persisted section key string to its enum value. The persisted key
+    /// is the enum's raw value, so this is `MenuBarSection.Name`'s own
+    /// `init?(rawValue:)`.
     private static nonisolated func sectionName(forPersistedKey key: String) -> MenuBarSection.Name? {
-        switch key {
-        case "visible": .visible
-        case "hidden": .hidden
-        case "alwaysHidden": .alwaysHidden
-        default: nil
-        }
+        MenuBarSection.Name(rawValue: key)
     }
 
-    /// Maps a section to its persisted key string.
+    /// Maps a section to its persisted key string (its raw value).
     private static nonisolated func sectionKeyFor(_ section: MenuBarSection.Name) -> String {
-        switch section {
-        case .visible: return "visible"
-        case .hidden: return "hidden"
-        case .alwaysHidden: return "alwaysHidden"
-        }
+        section.rawValue
     }
 
     // MARK: - State flag gates

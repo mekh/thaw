@@ -197,7 +197,9 @@ final class MenuBarItemManager: ObservableObject {
 
         let parkedIDs = Set(items.compactMap { item -> CGWindowID? in
             guard item.bounds.width > 0, item.bounds.height > 0 else { return item.windowID }
-            if item.bounds.midY > 80 { return item.windowID }
+            if item.bounds.midY > 80 {
+                return item.windowID
+            }
             guard let barMidY else { return nil }
             return abs(item.bounds.midY - barMidY) > 48 ? item.windowID : nil
         })
@@ -915,23 +917,16 @@ final class MenuBarItemManager: ObservableObject {
         MenuBarItemManager.diagLog.debug("Saved section order: \(newOrder.mapValues(\.count))")
     }
 
-    /// Returns a persistable string key for the given section name.
+    /// Returns a persistable string key for the given section name (its raw
+    /// value).
     private func sectionKey(for section: MenuBarSection.Name) -> String {
-        switch section {
-        case .visible: "visible"
-        case .hidden: "hidden"
-        case .alwaysHidden: "alwaysHidden"
-        }
+        section.rawValue
     }
 
-    /// Returns the section name for the given persisted key, if valid.
+    /// Returns the section name for the given persisted key, if valid. The
+    /// persisted key is the enum's raw value.
     private func sectionName(for key: String) -> MenuBarSection.Name? {
-        switch key {
-        case "visible": .visible
-        case "hidden": .hidden
-        case "alwaysHidden": .alwaysHidden
-        default: nil
-        }
+        MenuBarSection.Name(rawValue: key)
     }
 
     /// Prefix used in `pendingRelocations` values to mark items whose rehide
@@ -1082,7 +1077,9 @@ final class MenuBarItemManager: ObservableObject {
         if let badgeIndex = arrangedViews.firstIndex(where: { $0.isNewItemsBadge }) {
             let rightNeighbor = arrangedViews[(badgeIndex + 1) ..< arrangedViews.count]
                 .compactMap { view -> MenuBarItem? in
-                    if case let .item(item) = view.kind { return item }
+                    if case let .item(item) = view.kind {
+                        return item
+                    }
                     return nil
                 }
                 .first
@@ -1090,7 +1087,9 @@ final class MenuBarItemManager: ObservableObject {
             let leftNeighbor = arrangedViews[..<badgeIndex]
                 .reversed()
                 .compactMap { view -> MenuBarItem? in
-                    if case let .item(item) = view.kind { return item }
+                    if case let .item(item) = view.kind {
+                        return item
+                    }
                     return nil
                 }
                 .first
@@ -1796,26 +1795,6 @@ final class MenuBarItemManager: ObservableObject {
 // MARK: - Cache Gate
 
 extension MenuBarItemManager {
-    /// Selects the bounds source used to validate an automatic relocation.
-    /// macOS 27 items have synthetic window IDs, so their AX bounds are the
-    /// source of truth and a WindowServer lookup is neither valid nor useful.
-    static func relocationBounds(
-        itemBounds: CGRect,
-        windowServerBounds: CGRect?,
-        supportsLegacySectionHiding: Bool
-    ) -> CGRect? {
-        if supportsLegacySectionHiding {
-            return windowServerBounds
-        }
-        guard itemBounds.origin.x != -1,
-              itemBounds.width > 0,
-              itemBounds.height > 0
-        else {
-            return nil
-        }
-        return itemBounds
-    }
-
     /// Stable macOS 27 cache signature in live visual order. AX enumeration can
     /// arrive in arbitrary array order, so geometry determines order and the
     /// identifier breaks ties. Unlike an alphabetically sorted identity set,
@@ -1830,36 +1809,6 @@ extension MenuBarItemManager {
                 return lhs.bounds.midX < rhs.bounds.midX
             }
             .map(\.uniqueIdentifier)
-    }
-
-    /// Whether a macOS 27 AX snapshot should be treated as a transient miss
-    /// because Thaw's own visible control item disappeared from enumeration.
-    static func shouldRetainLastGoodCacheForMissingVisibleControlItem(
-        snapshotItems: [MenuBarItem],
-        previousCachedItems: [MenuBarItem],
-        supportsLegacySectionHiding: Bool
-    ) -> Bool {
-        guard !supportsLegacySectionHiding, !snapshotItems.isEmpty else {
-            return false
-        }
-        let hadVisibleControlItem = previousCachedItems.contains {
-            $0.tag.matchesVisibleControlItem
-        }
-        let hasVisibleControlItem = snapshotItems.contains {
-            $0.tag.matchesVisibleControlItem
-        }
-        return hadVisibleControlItem && !hasVisibleControlItem
-    }
-
-    /// macOS 27 may hide zero-width divider controls from AX, but the visible
-    /// Thaw status item must still be present before we synthesize dividers.
-    static func canSynthesizeMacOS27ControlItems(
-        snapshotItems: [MenuBarItem],
-        supportsLegacySectionHiding: Bool
-    ) -> Bool {
-        !supportsLegacySectionHiding && snapshotItems.contains {
-            $0.tag.matchesVisibleControlItem
-        }
     }
 
     /// Serializes cache operations to prevent races between concurrent
@@ -2355,11 +2304,15 @@ extension MenuBarItemManager {
             temporarilyShownItemContextsIsEmpty: temporarilyShownItemContexts.isEmpty
         )
 
-        // macOS 27 persists section membership through SimpleItemHider, not the
-        // position-derived savedSectionOrder. Mirror the curated section order
-        // from itemCache so profiles, defaults, and applySavedLayout stay in
-        // sync with the layout bars without fighting the assignment model.
-        if !MenuBarBackendFactory.current.supportsLegacySectionHiding, shouldPersistLayoutSnapshot {
+        switch MenuBarBackendFactory.current.persistLayoutSnapshot(shouldPersist: shouldPersistLayoutSnapshot) {
+        case .none:
+            break
+        case .mirrorSectionOrder:
+            // macOS 27 persists section membership through SimpleItemHider, not
+            // the position-derived savedSectionOrder. Mirror the curated section
+            // order from itemCache so profiles, defaults, and applySavedLayout
+            // stay in sync with the layout bars without fighting the assignment
+            // model.
             let mirrored = computeSectionOrder(from: context.cache)
             if mirrored != savedSectionOrder {
                 savedSectionOrder = mirrored
@@ -2368,9 +2321,7 @@ extension MenuBarItemManager {
                     "Mirrored macOS 27 section order: \(mirrored.mapValues(\.count))"
                 )
             }
-        }
-
-        if MenuBarBackendFactory.current.supportsLegacySectionHiding, shouldPersistLayoutSnapshot {
+        case .saveSpatialOrder:
             // Don't persist if any items are in a transient blocked state (x=-1).
             // Wait for the next cache cycle when bounds are reliable.
             let hasBlockedItems = MenuBarSection.Name.allCases.contains { section in
@@ -2635,10 +2586,9 @@ extension MenuBarItemManager {
         // because items is filtered.
         let itemWindowIDs = (currentItemWindowIDs ?? items.reversed().map(\.windowID))
             .filter { !cloneWindowIDs.contains($0) }
-        if Self.shouldRetainLastGoodCacheForMissingVisibleControlItem(
+        if MenuBarBackendFactory.current.shouldRetainLastGoodCache(
             snapshotItems: items,
-            previousCachedItems: itemCache.managedItems,
-            supportsLegacySectionHiding: MenuBarBackendFactory.current.supportsLegacySectionHiding
+            previousCachedItems: itemCache.managedItems
         ) {
             MenuBarItemManager.diagLog.warning(
                 "cacheItemsRegardless: Thaw visible control item missing from AX snapshot; retaining last-good cache. Items remaining: \(items.count), windowIDs: \(itemWindowIDs.count)"
@@ -2681,10 +2631,7 @@ extension MenuBarItemManager {
             await MainActor.run {
                 self.areControlItemsMissing = false
             }
-        } else if Self.canSynthesizeMacOS27ControlItems(
-            snapshotItems: items,
-            supportsLegacySectionHiding: MenuBarBackendFactory.current.supportsLegacySectionHiding
-        ) {
+        } else if MenuBarBackendFactory.current.canSynthesizeControlItems(snapshotItems: items) {
             // macOS 27: the hidden / always-hidden control items are kept
             // "present but invisible" by setting their NSStatusItem length to 0.
             // macOS 27 no longer vends an Accessibility element (or WindowServer
@@ -3096,7 +3043,9 @@ extension MenuBarItemManager {
         }
 
         var recoverySuggestion: String? {
-            if case .itemNotMovable = self { return nil }
+            if case .itemNotMovable = self {
+                return nil
+            }
             return "Please try again. If the error persists, please file a bug report."
         }
     }
@@ -3532,7 +3481,9 @@ extension MenuBarItemManager {
                 firstLocation: context.firstLocation
             )
             storeInnerTask(innerTask, in: state.innerTaskHolder)
-            if Task.isCancelled { innerTask.cancel() }
+            if Task.isCancelled {
+                innerTask.cancel()
+            }
         }
     }
 
@@ -3689,7 +3640,9 @@ extension MenuBarItemManager {
         /// Whether the destination is to the right of the anchor, used for
         /// computing offset weights in cursor-free reorder.
         var isRightward: Bool {
-            if case .rightOfItem = self { return true }
+            if case .rightOfItem = self {
+                return true
+            }
             return false
         }
 
@@ -4547,7 +4500,9 @@ extension MenuBarItemManager {
 
             for _ in 0 ..< maximumMoves {
                 guard !Task.isCancelled else { return }
-                if let revealedSection, hider.revealedSection != revealedSection { return }
+                if let revealedSection, hider.revealedSection != revealedSection {
+                    return
+                }
 
                 let sectionItems = liveItems.filter {
                     LayoutPlanner.isEligibleForSectionOrder($0, section: section) &&
@@ -4661,6 +4616,31 @@ extension MenuBarItemManager {
         }
     }
 
+    /// Waits for MenuBarAgent to relaunch and re-read the layout after a
+    /// preferred-position write, returning the latest geometry. MenuBarAgent is a
+    /// managed launch agent that relaunches within ~1-2 s, so both the batch and
+    /// single-move paths poll the live order until it settles rather than
+    /// guessing a fixed delay. Stops as soon as `isSatisfied` holds (converged)
+    /// or the poll budget elapses (current enough for the caller to mop up any
+    /// residual).
+    @available(macOS 27, *)
+    private func waitForMenuBarAgentLayout(
+        maxAttempts: Int = Constants.MenuBarTuning.menuBarAgentResortMaxPolls,
+        interval: Duration = Constants.MenuBarTuning.menuBarAgentResortPollInterval,
+        enumerate: () async -> [MenuBarItem] = { await MenuBarItem.getMenuBarItems(option: .activeSpace) },
+        isSatisfied: ([MenuBarItem]) -> Bool
+    ) async -> [MenuBarItem] {
+        var liveItems = await enumerate()
+        for _ in 0 ..< maxAttempts {
+            try? await Task.sleep(for: interval)
+            liveItems = await enumerate()
+            if isSatisfied(liveItems) {
+                break
+            }
+        }
+        return liveItems
+    }
+
     /// Waits for MenuBarAgent to relaunch and re-sort after a batch
     /// ``MenuBarAgentPositionStore/applyOrder(desiredOrder:liveItems:environment:)``
     /// write, returning the latest geometry. Polls until `section` satisfies
@@ -4673,24 +4653,23 @@ extension MenuBarItemManager {
         section: MenuBarSection.Name,
         hider: SimpleItemHider
     ) async -> [MenuBarItem] {
-        var liveItems = await MenuBarItem.getMenuBarItems(option: .activeSpace)
-        for _ in 0 ..< 12 {
-            try? await Task.sleep(for: .milliseconds(250))
-            liveItems = await MenuBarItem.getMenuBarItems(option: .activeSpace)
-            let sectionItems = liveItems.filter {
+        let experimentalSystemItemHiding = appState?.settings.advanced.enableExperimentalSystemItemHiding ?? false
+        let orderSatisfied: ([MenuBarItem]) -> Bool = { items in
+            let sectionItems = items.filter {
                 LayoutPlanner.isEligibleForSectionOrder($0, section: section) &&
                     hider.section(for: $0) == section
             }
-            if LayoutPlanner.nextAchievableOrderMove(
+            return LayoutPlanner.nextAchievableOrderMove(
                 items: sectionItems,
                 desiredOrder: desiredOrder,
-                experimentalSystemItemHiding: appState?.settings.advanced.enableExperimentalSystemItemHiding ?? false
-            ) == nil {
-                MenuBarItemManager.diagLog.info(
-                    "Batch preferred-position order satisfied for \(section.logString)"
-                )
-                break
-            }
+                experimentalSystemItemHiding: experimentalSystemItemHiding
+            ) == nil
+        }
+        let liveItems = await waitForMenuBarAgentLayout(isSatisfied: orderSatisfied)
+        if orderSatisfied(liveItems) {
+            MenuBarItemManager.diagLog.info(
+                "Batch preferred-position order satisfied for \(section.logString)"
+            )
         }
         return liveItems
     }
@@ -4722,21 +4701,21 @@ extension MenuBarItemManager {
         // MenuBarAgent is SIGTERM'd to re-read the layout and relaunches within
         // ~1-2 s. Poll the live order until it settles rather than guessing a
         // fixed delay.
-        for _ in 0 ..< 12 {
-            try? await Task.sleep(for: .milliseconds(250))
-            let updated = await MenuBarItem.getMenuBarItems(option: .activeSpace)
-            if LayoutPlanner.liveOrderSatisfiesDestination(
-                items: updated,
+        let destinationSatisfied: ([MenuBarItem]) -> Bool = { items in
+            LayoutPlanner.liveOrderSatisfiesDestination(
+                items: items,
                 item: item,
                 destination: destination,
                 experimentalSystemItemHiding: experimentalSystemItemHiding
-            ) {
-                lastMoveOperationTimestamp = .now
-                MenuBarItemManager.diagLog.info(
-                    "Preferred-position move verified for \(item.logString) \(destination.logString)"
-                )
-                return true
-            }
+            )
+        }
+        let updated = await waitForMenuBarAgentLayout(isSatisfied: destinationSatisfied)
+        if destinationSatisfied(updated) {
+            lastMoveOperationTimestamp = .now
+            MenuBarItemManager.diagLog.info(
+                "Preferred-position move verified for \(item.logString) \(destination.logString)"
+            )
+            return true
         }
 
         MenuBarItemManager.diagLog.warning(
@@ -6104,14 +6083,13 @@ extension MenuBarItemManager {
             // Skip items with no valid bounds (transient clone windows
             // etc.). This live check stays in the orchestrator because
             // it requires Bridging.
-            let supportsLegacySectionHiding = MenuBarBackendFactory.current.supportsLegacySectionHiding
-            let windowServerBounds = supportsLegacySectionHiding
+            let backend = MenuBarBackendFactory.current
+            let windowServerBounds = backend.supportsLegacySectionHiding
                 ? Bridging.getWindowBounds(for: candidate.windowID)
                 : nil
-            guard Self.relocationBounds(
+            guard backend.relocationBounds(
                 itemBounds: candidate.bounds,
-                windowServerBounds: windowServerBounds,
-                supportsLegacySectionHiding: supportsLegacySectionHiding
+                windowServerBounds: windowServerBounds
             ) != nil else {
                 MenuBarItemManager.diagLog.warning("Skipping relocation for \(candidate.logString); no valid bounds, likely transient")
                 return false
@@ -6257,8 +6235,12 @@ extension MenuBarItemManager {
             switch decision {
             case let .move(item, destination):
                 let targetSection: MenuBarSection.Name = {
-                    if case let .section(section) = entry.kind { return section }
-                    if case let .waitForRelaunch(_, section) = entry.kind { return section }
+                    if case let .section(section) = entry.kind {
+                        return section
+                    }
+                    if case let .waitForRelaunch(_, section) = entry.kind {
+                        return section
+                    }
                     return .hidden
                 }()
                 MenuBarItemManager.diagLog.info(
@@ -6341,7 +6323,8 @@ extension MenuBarItemManager {
     ) async {
         let hidden = controlItems.hidden
 
-        if !MenuBarBackendFactory.current.supportsLegacySectionHiding {
+        switch MenuBarBackendFactory.current.controlItemEnforcementStrategy {
+        case .assertionDividerReorder:
             let experimentalSystemItemHiding = appState?.settings.advanced
                 .enableExperimentalSystemItemHiding ?? false
             guard hidden.isPhysicallyOrderable(
@@ -6421,20 +6404,21 @@ extension MenuBarItemManager {
                 }
             }
             return
-        }
 
-        guard
-            let alwaysHidden = controlItems.alwaysHidden,
-            hidden.bounds.maxX <= alwaysHidden.bounds.minX
-        else {
-            return
-        }
+        case .legacyDividerSwap:
+            guard
+                let alwaysHidden = controlItems.alwaysHidden,
+                hidden.bounds.maxX <= alwaysHidden.bounds.minX
+            else {
+                return
+            }
 
-        do {
-            MenuBarItemManager.diagLog.debug("Control items have incorrect order")
-            try await move(item: alwaysHidden, to: .leftOfItem(hidden), skipInputPause: true)
-        } catch {
-            MenuBarItemManager.diagLog.error("Error enforcing control item order: \(error)")
+            do {
+                MenuBarItemManager.diagLog.debug("Control items have incorrect order")
+                try await move(item: alwaysHidden, to: .leftOfItem(hidden), skipInputPause: true)
+            } catch {
+                MenuBarItemManager.diagLog.error("Error enforcing control item order: \(error)")
+            }
         }
     }
 
@@ -7571,7 +7555,9 @@ extension MenuBarItemManager {
         // Bail before arming any profile state if cancellation arrived
         // during the settling wait (a newer apply has replaced us via
         // applyProfile's layoutTask?.cancel()).
-        if Task.isCancelled { return }
+        if Task.isCancelled {
+            return
+        }
 
         // MARK: Phase 1: persist state and arm in-flight flags
 
@@ -8022,7 +8008,9 @@ extension MenuBarItemManager {
 
                 let isControlUID = uid == hiddenCtrlUID || uid == ahCtrlUID
                 guard let item = freshItems.first(where: {
-                    if isControlUID { return $0.uniqueIdentifier == uid }
+                    if isControlUID {
+                        return $0.uniqueIdentifier == uid
+                    }
                     return $0.uniqueIdentifier == uid && isProfileItem($0)
                 }) else {
                     MenuBarItemManager.diagLog.debug("Profile layout (full sort): \(uid) not found, skipping")
@@ -8494,72 +8482,14 @@ extension MenuBarItemManager {
         }
         guard !savedSectionByBaseID.isEmpty else { return false }
 
-        // macOS 27: section membership is assignment-driven, not spatial.
-        // Items left of the hidden control still read as "hidden-side" in AX
-        // even when SimpleItemHider assigns them visible — false-triggering a
-        // bulk reorder on every cache cycle after assertion reflow.
-        if !MenuBarBackendFactory.current.supportsLegacySectionHiding {
-            guard let hider else { return false }
-            for item in items where !item.isControlItem && item.canBeHidden && item.isMovable
-                && !item.isNonConcealableSystemItem
-            {
-                guard !item.isParkedOffMenuBarBand(among: items) else { continue }
-
-                let baseID = "\(item.tag.namespace):\(item.tag.title)"
-                guard let expectedSection = savedSectionByBaseID[baseID] else {
-                    continue
-                }
-
-                let currentSection = hider.section(for: item)
-                if currentSection != expectedSection {
-                    return true
-                }
-            }
-            return false
-        }
-
-        let hiddenMinX = controlItems.hidden.bounds.minX
-        let hiddenMaxX = controlItems.hidden.bounds.maxX
-        let ahBounds = controlItems.alwaysHidden?.bounds
-
-        // Non-concealable Apple system items (Sound/Wi-Fi/Spotlight/Siri/…) report
-        // `canBeHidden` but can neither be bundle-concealed nor reliably dragged to
-        // the hidden side, so an assigned-hidden one is *perpetually* "in the wrong
-        // section". Including it here made divergence never clear, re-firing
-        // applyProfileLayout every cache cycle (the runaway loop that thrashed the
-        // divider and hijacked the cursor). They're managed best-effort elsewhere;
-        // exclude them from divergence so only achievable (third-party) drift
-        // triggers a re-apply.
-        for item in items where !item.isControlItem && item.canBeHidden && item.isMovable
-            && !item.isNonConcealableSystemItem
-        {
-            // Assertion reflows park items off the bar band briefly; their X
-            // still reads hidden-side and would false-trigger a bulk re-apply.
-            guard !item.isParkedOffMenuBarBand(among: items) else { continue }
-
-            let baseID = "\(item.tag.namespace):\(item.tag.title)"
-            guard let expectedSection = savedSectionByBaseID[baseID] else {
-                continue
-            }
-
-            let currentSection: MenuBarSection.Name? = if item.bounds.minX >= hiddenMaxX {
-                .visible
-            } else if let ahBounds, item.bounds.maxX <= ahBounds.minX {
-                .alwaysHidden
-            } else if let ahBounds, item.bounds.minX >= ahBounds.maxX, item.bounds.maxX <= hiddenMinX {
-                .hidden
-            } else if ahBounds == nil, item.bounds.maxX <= hiddenMinX {
-                .hidden
-            } else {
-                nil
-            }
-
-            guard let currentSection else { continue }
-            if currentSection != expectedSection {
-                return true
-            }
-        }
-        return false
+        // The per-OS classification (spatial bounds on legacy, assignment via
+        // SimpleItemHider on the assertion backend) lives in the backend.
+        return MenuBarBackendFactory.current.layoutMembershipDiverged(
+            savedSectionByBaseID: savedSectionByBaseID,
+            items: items,
+            controlItems: controlItems,
+            hider: hider
+        )
     }
 
     /// Decides whether a windowID-set difference between two cache cycles is a
@@ -8573,35 +8503,8 @@ extension MenuBarItemManager {
     /// item quit fires a full bulk re-sort on every cross-screen focus change,
     /// which on a notched display drifts items into always-hidden. A display
     /// switch is not a layout edit, so it must not advance the gate; the
-    /// divergence check still runs and catches genuine section drift.
-    static nonisolated func windowIDsChanged(
-        previous: Set<CGWindowID>,
-        current: Set<CGWindowID>,
-        previousDisplayID: CGDirectDisplayID?,
-        currentDisplayID: CGDirectDisplayID?,
-        supportsLegacySectionHiding: Bool = true
-    ) -> Bool {
-        // macOS 27's AX provider synthesizes IDs from logical item identity,
-        // and control items are removed from `items` before this gate runs.
-        // Comparing that managed-item set with the earlier all-item snapshot
-        // makes the extracted divider look like a quit on every cache cycle.
-        // Logical identity and assignment divergence own restore detection on
-        // that backend; retain the real-window disappearance signal on ≤26.
-        guard supportsLegacySectionHiding else { return false }
-        // First cycle: no prior frame to diff against.
-        guard !previous.isEmpty else { return false }
-        // The active menu bar display moved to another screen. With separate
-        // Spaces the prior display's windows are no longer on the active space,
-        // so they read as missing even though the same logical items are still
-        // present elsewhere. Not an item quit; do not advance the gate. Only
-        // suppress when both displays are known and genuinely differ, so an
-        // unknown display falls back to the plain disappearance signal.
-        if let previousDisplayID, let currentDisplayID, previousDisplayID != currentDisplayID {
-            return false
-        }
-        return !previous.isSubset(of: current)
-    }
-
+    /// divergence check still runs and catches genuine section drift. The
+    /// per-OS policy now lives in ``MenuBarBackend/windowIDsChanged(previous:current:previousDisplayID:currentDisplayID:)``.
     func applySavedLayout(
         items: [MenuBarItem],
         previousWindowIDs: [CGWindowID],
@@ -8692,12 +8595,11 @@ extension MenuBarItemManager {
         // happy path on app quit/relaunch pays nothing.
         let currentWindowIDSet = Set(items.map(\.windowID))
         let previousWindowIDSet = Set(previousWindowIDs)
-        let windowIDsChanged = Self.windowIDsChanged(
+        let windowIDsChanged = MenuBarBackendFactory.current.windowIDsChanged(
             previous: previousWindowIDSet,
             current: currentWindowIDSet,
             previousDisplayID: previousDisplayID,
-            currentDisplayID: currentDisplayID,
-            supportsLegacySectionHiding: MenuBarBackendFactory.current.supportsLegacySectionHiding
+            currentDisplayID: currentDisplayID
         )
         let layoutDiverged = windowIDsChanged
             ? false
