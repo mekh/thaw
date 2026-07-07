@@ -509,7 +509,17 @@ private struct IceBarContentView: View {
     }
 
     private func image(for item: MenuBarItem) -> NSImage? {
-        imageCache.image(for: item.tag)?.nsImage
+        OverflowFallbackIcon.resolvedImage(
+            for: item,
+            section: section,
+            appState: appState,
+            cachedImage: imageCache.image(for: item.tag)?.nsImage
+        )
+    }
+
+    /// Concealed sections can still render from app icons when captures fail.
+    private var canShowItemsWithoutCaptures: Bool {
+        OverflowFallbackIcon.supportsMissingCaptureFallback(for: section)
     }
 
     var body: some View {
@@ -632,7 +642,7 @@ private struct IceBarContentView: View {
             .onAppear {
                 Self.diagLog.warning("IceBar content: showing 'Loading menu bar items…' — itemCache.managedItems is EMPTY. This means the item cache has never been populated.")
             }
-        } else if imageCache.cacheFailed(for: section) {
+        } else if imageCache.cacheFailed(for: section), !canShowItemsWithoutCaptures {
             HStack {
                 if cacheGracePeriodActive {
                     Text("Loading menu bar items…")
@@ -664,14 +674,14 @@ private struct IceBarContentView: View {
                     HStack(spacing: itemSpacing) {
                         ForEach(items, id: \.windowID) { item in
                             IceBarItemView(
-                                imageCache: imageCache,
                                 itemManager: itemManager,
                                 menuBarManager: menuBarManager,
                                 item: item,
                                 section: section,
                                 displayID: screen.displayID,
                                 maxHeight: itemMaxHeight,
-                                tooltipDelay: appState.settings.advanced.tooltipDelay
+                                tooltipDelay: appState.settings.advanced.tooltipDelay,
+                                displayImage: image(for: item)
                             )
                         }
                     }
@@ -689,14 +699,14 @@ private struct IceBarContentView: View {
                     VStack(spacing: itemSpacing) {
                         ForEach(items, id: \.windowID) { item in
                             IceBarItemView(
-                                imageCache: imageCache,
                                 itemManager: itemManager,
                                 menuBarManager: menuBarManager,
                                 item: item,
                                 section: section,
                                 displayID: screen.displayID,
                                 maxHeight: itemMaxHeight,
-                                tooltipDelay: appState.settings.advanced.tooltipDelay
+                                tooltipDelay: appState.settings.advanced.tooltipDelay,
+                                displayImage: image(for: item)
                             )
                         }
                     }
@@ -716,14 +726,14 @@ private struct IceBarContentView: View {
                             HStack(spacing: itemSpacing) {
                                 ForEach(Array(rowItems.enumerated()), id: \.element.windowID) { colIndex, item in
                                     let itemView = IceBarItemView(
-                                        imageCache: imageCache,
                                         itemManager: itemManager,
                                         menuBarManager: menuBarManager,
                                         item: item,
                                         section: section,
                                         displayID: screen.displayID,
                                         maxHeight: itemMaxHeight,
-                                        tooltipDelay: appState.settings.advanced.tooltipDelay
+                                        tooltipDelay: appState.settings.advanced.tooltipDelay,
+                                        displayImage: image(for: item)
                                     )
                                     if rows.count > 1 {
                                         itemView
@@ -759,7 +769,6 @@ private struct IceBarContentView: View {
 private struct IceBarItemView: View {
     private static let diagLog = DiagLog(category: "IceBar.ItemView")
 
-    @ObservedObject var imageCache: MenuBarItemImageCache
     @ObservedObject var itemManager: MenuBarItemManager
     @ObservedObject var menuBarManager: MenuBarManager
 
@@ -768,6 +777,7 @@ private struct IceBarItemView: View {
     let displayID: CGDirectDisplayID
     let maxHeight: CGFloat?
     let tooltipDelay: TimeInterval
+    let displayImage: NSImage?
 
     private var leftClickAction: () -> Void {
         return { [weak itemManager, weak menuBarManager] in
@@ -847,7 +857,7 @@ private struct IceBarItemView: View {
     }
 
     private var image: NSImage? {
-        imageCache.image(for: item.tag)?.nsImage
+        displayImage
     }
 
     private func targetSize(for image: NSImage) -> CGSize {
