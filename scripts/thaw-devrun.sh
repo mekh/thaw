@@ -16,7 +16,9 @@
 # old `/Applications/Thaw Debug.app`, installs the fresh build, and launches it —
 # no manual quitting or trashing needed, no Developer-ID cert and no release.
 #
-# Usage: Scripts/thaw-devrun.sh
+# Usage:
+#   ./scripts/thaw-devrun.sh
+#   ./scripts/thaw-devrun.sh --skip-packages
 #
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -26,7 +28,36 @@ CONFIG="Debug"
 DEST="/Applications/Thaw Debug.app"
 DEBUG_BUNDLE_ID="com.stonerl.Thaw.debug"
 
+SKIP_PACKAGES=0
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --skip-packages)
+            SKIP_PACKAGES=1
+            shift
+            ;;
+        -h | --help)
+            sed -n '1,22p' "$0" | tail -n +2
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1 (try --help)" >&2
+            exit 2
+            ;;
+    esac
+done
+
 say() { printf '\033[1;36m==>\033[0m %s\n' "$*"; }
+
+resolve_swift_packages() {
+    say "Resolving Swift packages…"
+    xcodebuild -resolvePackageDependencies \
+        -project Thaw.xcodeproj \
+        -scheme "$SCHEME"
+}
+
+if [[ "$SKIP_PACKAGES" -eq 0 ]]; then
+    resolve_swift_packages
+fi
 
 # Quit every running 'Thaw Debug' process — the app AND its MenuBarItemService
 # XPC child — without touching a release `Thaw`. Matches on the install path so
