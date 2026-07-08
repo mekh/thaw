@@ -33,3 +33,29 @@ enum ControlItemEnforcementStrategy: Equatable {
     /// divider when their geometry is inverted.
     case legacyDividerSwap
 }
+
+enum PreferredMovePath: Equatable {
+    case legacyWindowServer
+    case preferredPositionsThenCommandDrag
+}
+
+enum SectionResetTarget: Equatable {
+    case freshInstallHidden
+    case allVisible
+    case allAlwaysHidden
+}
+
+enum LayoutResetExecution: Equatable {
+    case assignmentSweep(MenuBarSection.Name?)
+    case legacyPhysicalMoves(MenuBarItemManager.LayoutResetDirection)
+}
+
+enum ProfileLayoutStrategy: Equatable {
+    case legacyBulkMove
+    case assignmentApply
+}
+
+enum SavedLayoutRestoreStrategy: Equatable {
+    case spatialBulkApply
+    case visibleControlOrderOnly
+}
