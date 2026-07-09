@@ -12,6 +12,7 @@
 		1787C4272B16890B002F50DF /* AXSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 1787C4262B16890B002F50DF /* AXSwift */; };
 		17F71BB52B880B4500905CBA /* CompactSlider in Frameworks */ = {isa = PBXBuildFile; productRef = 17F71BB42B880B4500905CBA /* CompactSlider */; };
 		7127A9FF2C4886D100D99DEF /* IfritStatic in Frameworks */ = {isa = PBXBuildFile; productRef = 7127A9FE2C4886D100D99DEF /* IfritStatic */; };
+		9570E4A96CDEC0BEBAA5573F /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 43C5F05D006747974015EBD9 /* AsyncAlgorithms */; };
 		7168EE532E281CBC00FF9830 /* AXSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7168EE522E281CBC00FF9830 /* AXSwift */; };
 		7188A68C2E27F9ED008F131D /* MenuBarItemService.xpc in Embed XPC Services */ = {isa = PBXBuildFile; fileRef = 7188A6832E27F9ED008F131D /* MenuBarItemService.xpc */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D85602169B8B4308ACEB30A0 /* MenuBarModel in Frameworks */ = {isa = PBXBuildFile; productRef = D578D4A98E514566A18944B0 /* MenuBarModel */; };
@@ -21,6 +22,8 @@
 		E2C0FFEE2F2C000000000002 /* MenuBarHost in Frameworks */ = {isa = PBXBuildFile; productRef = E2C0FFEE2F2C000000000004 /* MenuBarHost */; };
 		E6A2198F9A73488581DC5B97 /* MenuBarHost in Frameworks */ = {isa = PBXBuildFile; productRef = EDF7E8FBA3834C8090E06B59 /* MenuBarHost */; };
 		F3B1A2C4D5E6F7A8B9C0D1E3 /* MenuBarModel in Frameworks */ = {isa = PBXBuildFile; productRef = C2D4E6A8B0C2D4E6A8B0C2D4 /* MenuBarModel */; };
+		F1A2B3C42F50000000000001 /* MenuBarModel in Embed Frameworks */ = {isa = PBXBuildFile; productRef = D578D4A98E514566A18944B0 /* MenuBarModel */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		F1A2B3C42F50000000000002 /* MenuBarModel in Embed Frameworks */ = {isa = PBXBuildFile; productRef = C2D4E6A8B0C2D4E6A8B0C2D4 /* MenuBarModel */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -41,6 +44,28 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		F1A2B3C42F50000000000003 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				F1A2B3C42F50000000000001 /* MenuBarModel in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F1A2B3C42F50000000000004 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				F1A2B3C42F50000000000002 /* MenuBarModel in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		7188A68D2E27F9ED008F131D /* Embed XPC Services */ = {
 			isa = PBXCopyFilesBuildPhase;
 			dstPath = "$(CONTENTS_FOLDER_PATH)/XPCServices";
@@ -110,6 +135,7 @@
 			files = (
 				170423D92B56DE78004A2549 /* Sparkle in Frameworks */,
 				7127A9FF2C4886D100D99DEF /* IfritStatic in Frameworks */,
+				9570E4A96CDEC0BEBAA5573F /* AsyncAlgorithms in Frameworks */,
 				175061912B1543DD003144CD /* LaunchAtLogin in Frameworks */,
 				1787C4272B16890B002F50DF /* AXSwift in Frameworks */,
 				17F71BB52B880B4500905CBA /* CompactSlider in Frameworks */,
@@ -166,6 +192,7 @@
 			buildPhases = (
 				716683262A767E6A006ABF84 /* Sources */,
 				716683272A767E6A006ABF84 /* Frameworks */,
+				F1A2B3C42F50000000000003 /* Embed Frameworks */,
 				716683282A767E6A006ABF84 /* Resources */,
 				1720D48F2BB9B60500A7AC63 /* SwiftLint */,
 				7188A68D2E27F9ED008F131D /* Embed XPC Services */,
@@ -187,6 +214,7 @@
 				170423D82B56DE78004A2549 /* Sparkle */,
 				17F71BB42B880B4500905CBA /* CompactSlider */,
 				7127A9FE2C4886D100D99DEF /* IfritStatic */,
+				43C5F05D006747974015EBD9 /* AsyncAlgorithms */,
 				D578D4A98E514566A18944B0 /* MenuBarModel */,
 				EDF7E8FBA3834C8090E06B59 /* MenuBarHost */,
 				D27A00032F40000000000003 /* PlatformRuntimeKit */,
@@ -201,6 +229,7 @@
 			buildPhases = (
 				7188A67F2E27F9ED008F131D /* Sources */,
 				7188A6802E27F9ED008F131D /* Frameworks */,
+				F1A2B3C42F50000000000004 /* Embed Frameworks */,
 				7188A6812E27F9ED008F131D /* Resources */,
 				170AD05B2BB9B60500A7AC64 /* Stamp Git SHA */,
 			);
@@ -300,7 +329,8 @@
 				170423D72B56DE78004A2549 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				17F71BB32B880B4500905CBA /* XCRemoteSwiftPackageReference "CompactSlider" */,
 				7127A9FB2C4881BC00D99DEF /* XCRemoteSwiftPackageReference "Ifrit" */,
-				D27A00002F40000000000000 /* XCRemoteSwiftPackageReference "PlatformRuntimeKit" */,
+				1ADDA61D49BE1BA7CA5EA059 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
+				D27A00002F40000000000000 /* XCLocalSwiftPackageReference "PlatformRuntimeKit" */,
 				A4E38A6A423944089D70B9BB /* XCLocalSwiftPackageReference "MenuBarModel" */,
 				AD2D675A051141C9B42279EC /* XCLocalSwiftPackageReference "MenuBarHost" */,
 			);
@@ -843,17 +873,21 @@
 				minimumVersion = 4.0.0;
 			};
 		};
-		D27A00002F40000000000000 /* XCRemoteSwiftPackageReference "PlatformRuntimeKit" */ = {
+		1ADDA61D49BE1BA7CA5EA059 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/thaw-app/PlatformRuntimeKit-Releases";
+			repositoryURL = "https://github.com/apple/swift-async-algorithms";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.0.1;
+				minimumVersion = 1.0.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		D27A00002F40000000000000 /* XCLocalSwiftPackageReference "PlatformRuntimeKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../PlatformRuntimeKit;
+		};
 		A4E38A6A423944089D70B9BB /* XCLocalSwiftPackageReference "MenuBarModel" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = MenuBarModel;
@@ -890,6 +924,11 @@
 			package = 7127A9FB2C4881BC00D99DEF /* XCRemoteSwiftPackageReference "Ifrit" */;
 			productName = IfritStatic;
 		};
+		43C5F05D006747974015EBD9 /* AsyncAlgorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1ADDA61D49BE1BA7CA5EA059 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
+			productName = AsyncAlgorithms;
+		};
 		7168EE522E281CBC00FF9830 /* AXSwift */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 1787C4252B16890B002F50DF /* XCRemoteSwiftPackageReference "AXSwift" */;
@@ -906,8 +945,8 @@
 			productName = MenuBarModel;
 		};
 		E2C0FFEE2F2C000000000003 /* MenuBarModel */ = {isa = XCSwiftPackageProductDependency; package = A4E38A6A423944089D70B9BB /* XCLocalSwiftPackageReference "MenuBarModel" */; productName = MenuBarModel; };
-		D27A00032F40000000000003 /* PlatformRuntimeKit */ = {isa = XCSwiftPackageProductDependency; package = D27A00002F40000000000000 /* XCRemoteSwiftPackageReference "PlatformRuntimeKit" */; productName = PlatformRuntimeKit; };
-		D27A00042F40000000000004 /* PlatformRuntimeKit */ = {isa = XCSwiftPackageProductDependency; package = D27A00002F40000000000000 /* XCRemoteSwiftPackageReference "PlatformRuntimeKit" */; productName = PlatformRuntimeKit; };
+		D27A00032F40000000000003 /* PlatformRuntimeKit */ = {isa = XCSwiftPackageProductDependency; package = D27A00002F40000000000000 /* XCLocalSwiftPackageReference "PlatformRuntimeKit" */; productName = PlatformRuntimeKit; };
+		D27A00042F40000000000004 /* PlatformRuntimeKit */ = {isa = XCSwiftPackageProductDependency; package = D27A00002F40000000000000 /* XCLocalSwiftPackageReference "PlatformRuntimeKit" */; productName = PlatformRuntimeKit; };
 		E2C0FFEE2F2C000000000004 /* MenuBarHost */ = {isa = XCSwiftPackageProductDependency; package = AD2D675A051141C9B42279EC /* XCLocalSwiftPackageReference "MenuBarHost" */; productName = MenuBarHost; };
 		EDF7E8FBA3834C8090E06B59 /* MenuBarHost */ = {
 			isa = XCSwiftPackageProductDependency;
