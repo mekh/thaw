@@ -354,6 +354,17 @@ final class MenuBarSectionController: ObservableObject {
     /// concealment recovery; the next cache pass remains the single authority
     /// for order recovery.
     private func handleExternalPositionsChange(_ positions: [String: Int]) {
+        // MenuBarAgent renormalizes the entire `TrailingItemPreferredPositions`
+        // dictionary during its own reflows, so the watcher fires on churn in
+        // keys Thaw does not manage (148-key rewrites). If every concealment
+        // authority is still healthy — hidden items still off-screen, assertion
+        // still held — there is nothing to recover, and reacting would rewrite
+        // the store, which MenuBarAgent normalizes again, sustaining the
+        // "reordering that never stops" loop. Only recover on a genuine breach.
+        guard !areConcealmentAuthoritiesHealthy else {
+            diagLog.debug("external order change is benign (concealment healthy); skipping recovery")
+            return
+        }
         diagLog.notice("external MenuBarAgent order change (\(positions.count) key(s)); scheduling settled recovery")
         recoveryDriver?.recover(trigger: .externalPositions)
     }
@@ -552,6 +563,7 @@ final class MenuBarSectionController: ObservableObject {
         }
         let allItems = appState.itemManager.itemCache.managedItems
 
+        assessmentStateMonitor?.noteSelfChange()
         var didChange = false
         if recoverySnapshot().isControlledHidden {
             didChange = backend.apply(sectionAssignment: [:], allItems: allItems)
@@ -566,7 +578,6 @@ final class MenuBarSectionController: ObservableObject {
 
     private func noteRecoveryRestrictionChange(_ didChange: Bool) {
         guard didChange, let appState else { return }
-        assessmentStateMonitor?.noteSelfChange()
         appState.itemManager.noteRestrictionChange()
         restoreVisibleControlItemAfterRestrictionChange()
     }
@@ -1481,6 +1492,7 @@ final class MenuBarSectionController: ObservableObject {
         let hasConcealedItems = backendAssignment.values.contains {
             $0 == .hidden || $0 == .alwaysHidden
         }
+        assessmentStateMonitor?.noteSelfChange()
         let didChangeRestriction = if forceRestrictionPulse, hasConcealedItems {
             backend.pulse(
                 sectionAssignment: backendAssignment,
@@ -1493,7 +1505,6 @@ final class MenuBarSectionController: ObservableObject {
             )
         }
         if didChangeRestriction {
-            assessmentStateMonitor?.noteSelfChange()
             appState.itemManager.noteRestrictionChange()
             restoreVisibleControlItemAfterRestrictionChange()
             diagLog.info("restriction changed; restored visible control item state")
@@ -1683,12 +1694,14 @@ final class MenuBarSectionController: ObservableObject {
             visibleOrder: visibleOrder
         )
         positionHandledItemIdentifiers = result.handledItemIdentifiers
-        // Only a successfully resolved `status:` key is safe to remove from
-        // the assertion input. `isCGSWindowHideable` describes the abandoned
-        // per-window experiment, not whether the position store can actually
-        // manage this particular item (dynamic keys and newly launched apps may
-        // be unresolved). Those items keep the assertion fallback.
-        positionAssertionExcludedItemIdentifiers = result.handledItemIdentifiers
+        // Remove EVERY third-party item from the assertion input — not just the
+        // ones that resolved to a `status:` key. If an unresolved hidden item
+        // stayed in the assertion input, the concealed set would flip on every
+        // reveal/re-hide of that item, re-applying the assertion and forcing a
+        // whole-bar re-composite (the 2-3s "menu bar disappears then comes back"
+        // flicker). With position hiding on, the assertion manages system items
+        // only; an unresolved third-party item stays visible instead.
+        positionAssertionExcludedItemIdentifiers = result.thirdPartyItemIdentifiers
         for identifier in positionAssertionExcludedItemIdentifiers {
             backendAssignment.removeValue(forKey: identifier)
         }
@@ -2064,9 +2077,12 @@ final class MenuBarSectionController: ObservableObject {
 
     @available(macOS 27, *)
     private func resolvedAXIdentifier(for element: UIElement) -> String? {
+        // NOT `.lazy`: lazy `compactMap` evaluates the transform twice for the
+        // first match (filter then force-unwrap), and this transform is a live
+        // AX query that can return a different value between the two calls,
+        // trapping on the `$0!`. Eager runs each query once; child lists are tiny.
         AXHelpers.identifier(for: element)?.nonEmpty
             ?? AXHelpers.children(for: element)
-            .lazy
             .compactMap { AXHelpers.identifier(for: $0)?.nonEmpty }
             .first
             ?? AXHelpers.title(for: element)?.nonEmpty
