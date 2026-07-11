@@ -646,15 +646,21 @@ final class MenuBarItemImageCache: ObservableObject, @unchecked Sendable {
     private func runLiveRefreshLoop() async {
         MenuBarItemImageCache.diagLog.debug("Live refresh loop started")
 
-        // macOS 27 captures each tick from the MenuBarAgent hosting window.
-        // Keep a warm SCStream alive for the duration of the loop so ticks read
-        // its buffered frame instead of paying a fresh one-shot capture; it is
-        // torn down when the loop stops.
-        if #available(macOS 27, *) {
-            await ScreenCapture.beginMenuBarHostingStreaming()
-        }
+        // When the user opts into continuous capture (macOS 27), keep a warm
+        // hosting-window SCStream alive so ticks read its buffered frame instead
+        // of a one-shot capture. Off by default: a persistent stream keeps the
+        // macOS screen-recording indicator lit, which reflows the bar and skews
+        // captures. Tracked locally so it is torn down on any loop exit.
+        var streamingActive = false
+        // One-shot mode must not become a stream factory: SCScreenshotManager
+        // creates and destroys a transient SCStream for every screenshot, and
+        // the macOS 27 implementation leaks framework state per invocation.
+        // Allow a small, bounded retry window when the consumer opens because
+        // MenuBarAgent can still be reflowing on the first frame. Explicit
+        // layout/reset/reorder paths request their own refreshes afterward.
+        var remainingOneShotAttempts = 3
         defer {
-            if #available(macOS 27, *) {
+            if streamingActive, #available(macOS 27, *) {
                 Task { await ScreenCapture.endMenuBarHostingStreaming() }
             }
         }
@@ -663,10 +669,30 @@ final class MenuBarItemImageCache: ObservableObject, @unchecked Sendable {
             guard let appState = self.appState else { break }
             var interval = appState.settings.advanced.iconRefreshInterval
             guard interval > 0 else {
+                if streamingActive, #available(macOS 27, *) {
+                    await ScreenCapture.endMenuBarHostingStreaming()
+                    streamingActive = false
+                }
+                remainingOneShotAttempts = 3
                 try? await Task.sleep(for: .seconds(1))
                 continue
             }
             if #available(macOS 27, *) {
+                // Sync the warm stream to the setting so toggling it takes effect
+                // within a tick rather than needing the loop to restart.
+                let wantStreaming = appState.settings.advanced.useContinuousMenuBarCapture
+                if wantStreaming != streamingActive {
+                    if wantStreaming {
+                        await ScreenCapture.beginMenuBarHostingStreaming()
+                    } else {
+                        await ScreenCapture.endMenuBarHostingStreaming()
+                    }
+                    streamingActive = wantStreaming
+                    if !wantStreaming {
+                        remainingOneShotAttempts = 3
+                    }
+                }
+
                 // Each macOS 27 refresh is a full MenuBarAgent hosting-window
                 // screenshot (plus an AX walk for concealed sections) — far
                 // heavier than the legacy per-window capture. A sub-second cadence
@@ -732,7 +758,13 @@ final class MenuBarItemImageCache: ObservableObject, @unchecked Sendable {
             // updateCacheWithoutChecks already routes to (axBoundsCapture). Use it
             // here so the periodic refresh actually refreshes on 27.
             if #available(macOS 27, *) {
+                if !streamingActive, remainingOneShotAttempts == 0 {
+                    continue
+                }
                 await updateCacheWithoutChecks(sections: sections)
+                if !streamingActive {
+                    remainingOneShotAttempts -= 1
+                }
                 continue
             }
 
