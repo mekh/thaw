@@ -12,6 +12,7 @@
 **/.build/**
 *.dSYM
 *.ipa
+*.profraw
 build/  
 !.github/actions/build/  
 !.github/actions/build/** 
@@ -25,3 +26,5 @@ MenuBarModel/.swiftpm/
 ThawCtl/.build/
 xcode-skills
 xcuserdata/  
+
+advisor-plans/
