@@ -64,7 +64,7 @@ struct AutomationSettingsPane: View {
     // MARK: - Enable Section
 
     private var enableSection: some View {
-        IceSection(options: [.isBordered]) {
+        IceSection {
             VStack(alignment: .leading, spacing: 12) {
                 Toggle("Enable Settings URI Scheme", isOn: $settings.isSettingsURIEnabled)
                     .annotation("Allow external applications to read and modify \(Constants.displayName) settings via thaw:// URLs.")
@@ -87,7 +87,7 @@ struct AutomationSettingsPane: View {
     // MARK: - Whitelist Section
 
     private var whitelistSection: some View {
-        IceSection(spacing: .iceSectionDefaultSpacing, options: [.isBordered]) {
+        IceSection {
             whitelistHeader
         } content: {
             VStack(alignment: .leading, spacing: 16) {
@@ -106,19 +106,14 @@ struct AutomationSettingsPane: View {
     }
 
     private var whitelistHeader: some View {
-        HStack(spacing: 0) {
+        let count = String(localized: "apps \(settings.whitelistedApps.count)", comment: "Shows the number of whitelisted apps")
+        return HStack(spacing: 0) {
             Text("Whitelisted Applications")
                 .font(.headline)
 
             Spacer().frame(width: 6)
 
-            Text(verbatim: "(")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(String(localized: "apps \(settings.whitelistedApps.count)", comment: "Shows the number of whitelisted apps"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(verbatim: ")")
+            Text(verbatim: "(\(count))")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Spacer()
@@ -315,7 +310,7 @@ struct AutomationSettingsPane: View {
     // MARK: - Profile Hooks Section
 
     private var profileHooksSection: some View {
-        IceSection(spacing: .iceSectionDefaultSpacing, options: [.isBordered]) {
+        IceSection {
             HStack(spacing: 0) {
                 Text("Hooks").font(.headline)
                 Spacer()

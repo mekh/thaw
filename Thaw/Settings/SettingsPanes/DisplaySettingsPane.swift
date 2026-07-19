@@ -56,10 +56,10 @@ struct DisplaySettingsPane: View {
             IceSection("Global") {
                 globalSection()
             }
-            IceSection(options: [.isBordered]) {
+            IceSection {
                 confirmSpacingRelaunchControls
             }
-            ForEach(displaySettings.allDisplays()) { display in
+            ForEach(displaySettings.displays) { display in
                 displaySection(for: display)
             }
         }
@@ -682,7 +682,7 @@ struct DisplaySettingsPane: View {
     /// broadcast would be a no-op.
     private var canApplyGlobal: Bool {
         let target = displaySettings.globalConfiguration
-        let displays = displaySettings.allDisplays()
+        let displays = displaySettings.displays
         guard !displays.isEmpty else { return false }
         return displays.contains { display in
             displaySettings.configuration(forUUID: display.id) != target
@@ -696,7 +696,7 @@ struct DisplaySettingsPane: View {
     /// asks for confirmation because it overwrites every per-display entry,
     /// which is destructive.
     private func requestGlobalApply() {
-        let displayCount = displaySettings.allDisplays().count
+        let displayCount = displaySettings.displays.count
         let activeID = appState.profileManager.activeProfileID
 
         // Confirmations disabled: broadcast directly, saving to the chosen
@@ -804,7 +804,7 @@ struct DisplaySettingsPane: View {
 
     private func globalConfirmationMessage(for pending: PendingGlobalApply) -> String {
         let profileName = pending.activeProfileName ?? ""
-        let displayMessage = String(localized: "This will overwrite the settings of \(pending.displayCount) display with the global template. If the active display's spacing changes, Thaw will relaunch each app with a menu bar item. Relaunching apps may cause unsaved input, progress, or transient app state to be lost.")
+        let displayMessage = String(localized: "This will overwrite the settings of \(pending.displayCount) displays with the global template. If the active display's spacing changes, Thaw will relaunch each app with a menu bar item. Relaunching apps may cause unsaved input, progress, or transient app state to be lost.")
         if pending.activeProfileID != nil {
             let profileInstruction = String(localized: "Save the global template to the active profile \"\(profileName)\", or save it to every profile.")
             return "\(displayMessage) \(profileInstruction)"
