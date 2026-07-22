@@ -282,6 +282,10 @@ final class MenuBarSectionController: ObservableObject {
 
     private var timer: Timer?
     private var boundaryReconciliationTask: Task<Void, Never>?
+    var hasPendingRevealOrderSynchronization: Bool {
+        boundaryReconciliationTask != nil
+    }
+
     private var lastRefreshSignature: String?
     private var nativeOverflowProbeTask: Task<Void, Never>?
     private var nativeOverflowState = NativeOverflowStateReducer()
@@ -756,7 +760,8 @@ final class MenuBarSectionController: ObservableObject {
             section != .visible &&
                 !isControlItemAssignmentIdentifier(identifier) &&
                 !isOwnAppAssignmentIdentifier(identifier) &&
-                !isHidingUnsupportedAssignmentIdentifier(identifier)
+                !isHidingUnsupportedAssignmentIdentifier(identifier) &&
+                !MenuBarItemTag.isMenuBarAgentForcedVisibleIdentifier(identifier)
         }
     }
 
@@ -1005,27 +1010,50 @@ final class MenuBarSectionController: ObservableObject {
     }
 
     /// Temporarily reveals a hidden section in the real menu bar.
+    ///
+    /// - Parameter reconcileBoundary: When `true`, also repairs legacy persisted
+    ///   assignments one item at a time. Normal reveals leave this disabled.
+    /// - Parameter synchronizeOrder: When `true`, schedules one cancellable,
+    ///   batch preferred-position restore after the reveal has settled. Capture
+    ///   prewarming disables this because it is not a user-visible reveal.
     func show(
         _ section: MenuBarSection.Name,
-        reconcileBoundary: Bool = true
+        reconcileBoundary: Bool = false,
+        synchronizeOrder: Bool = true
     ) {
-        if !reconcileBoundary {
+        if !reconcileBoundary, !synchronizeOrder {
             boundaryReconciliationTask?.cancel()
             boundaryReconciliationTask = nil
         }
         guard let target = Self.revealTarget(for: section), revealedSection != target else {
             return
         }
+
+        // Pin the items that are already visible before releasing the
+        // assertion. Otherwise MenuBarAgent may shift Thaw's own status item
+        // during reveal, moving it out from under the pointer before the user's
+        // second click can rehide the section. The delayed batch restore below
+        // then only has to place the newly revealed items around this stable
+        // visible segment.
+        if #available(macOS 27, *),
+           !MenuBarBackendProvider.current.supportsLegacySectionHiding
+        {
+            appState?.itemManager.prepareMacOS27RevealedOrder()
+            if appState?.settings.advanced.enablePositionHiding == false {
+                _ = relockVisiblePositionsForRecovery()
+            }
+        }
         revealedSection = target
         diagLog.info("show(\(target.rawValue)); temporarily revealing assigned item(s)")
+        // Restriction apply must stay synchronous with the reveal flag. Deferring
+        // it let a rapid follow-up click hide (and cancel the pending refresh)
+        // before items ever appeared — clicks registered, nothing showed.
         refresh()
 
-        guard reconcileBoundary else { return }
+        guard reconcileBoundary || synchronizeOrder else { return }
 
-        // Existing assignments created by earlier macOS 27 builds may never
-        // have crossed a physical divider. Once their AX elements reappear,
-        // repair that persisted layout so the revealed bar is always:
-        // Hidden < divider < Visible.
+        // The normal path performs one atomic preferred-position permutation.
+        // The slower per-item migration path remains explicit and separate.
         boundaryReconciliationTask?.cancel()
         boundaryReconciliationTask = Task { @MainActor [weak self, weak appState] in
             try? await Task.sleep(for: .milliseconds(350))
@@ -1036,9 +1064,18 @@ final class MenuBarSectionController: ObservableObject {
             else {
                 return
             }
-            await appState.itemManager.reconcileMacOS27SectionBoundaries(
-                revealing: target
-            )
+            if reconcileBoundary {
+                await appState.itemManager.reconcileMacOS27SectionBoundaries(
+                    revealing: target
+                )
+            } else {
+                await appState.itemManager.synchronizeMacOS27RevealedOrder(
+                    revealing: target
+                )
+            }
+            if !Task.isCancelled, self.revealedSection == target {
+                self.boundaryReconciliationTask = nil
+            }
         }
     }
 
@@ -1895,8 +1932,15 @@ final class MenuBarSectionController: ObservableObject {
     func refresh(forceRestrictionPulse: Bool = false) {
         guard let appState else { return }
         let experimentalSystemItemHiding = appState.settings.advanced.enableExperimentalSystemItemHiding
-        let experimentalWindowHiding = appState.settings.advanced.enablePositionHiding
         let allItems = appState.itemManager.itemCache.managedItems
+        // The assessment assertion collateral-hides Focus and Now Playing while
+        // it conceals any third-party app. Route third-party hiding through
+        // preferred positions whenever either module is live, even when the
+        // optional position backend setting is off.
+        let preservesPositionManagedSystemModules = allItems.contains {
+            $0.tag.isPositionManageableMenuBarAgentItem
+        } || sectionAssignment.keys.contains(where: MenuBarItemTag.isPositionManageableMenuBarAgentIdentifier)
+        let experimentalWindowHiding = appState.settings.advanced.enablePositionHiding || preservesPositionManagedSystemModules
         let invalidAssignmentIDs = Self.invalidAssignmentIdentifiers(
             sectionAssignment: sectionAssignment,
             liveItems: allItems,
@@ -1962,6 +2006,12 @@ final class MenuBarSectionController: ObservableObject {
         // they show/hide only on a real assignment change (drag to/from Hidden).
         var ccHiddenTitles = Set<String>()
         for (identifier, section) in assignmentIncludingOverflow where section != .visible {
+            // Focus and Now Playing use preferred positions, not the Control
+            // Center preference: restarting the host to apply that preference
+            // cannot overcome assessment-mode collateral hiding.
+            guard !MenuBarItemTag.isPositionManageableMenuBarAgentIdentifier(identifier) else {
+                continue
+            }
             if let title = RuntimeModuleController.governableMenuExtraTitle(forItemIdentifier: identifier) {
                 ccHiddenTitles.insert(title)
             }
@@ -2060,7 +2110,7 @@ final class MenuBarSectionController: ObservableObject {
         let unsupportedItems = items.filter { item in
             bundleIDs.contains(item.tag.namespace.description)
         }
-        let presentBundleIDs = Set(unsupportedItems.map { $0.tag.namespace.description })
+        let presentBundleIDs = Set(unsupportedItems.map(\.tag.namespace.description))
         return HidingUnsupportedVisibilityFailures(
             invisibleItems: unsupportedItems.filter { !$0.isOnScreen },
             absentBundleIDs: bundleIDs.subtracting(presentBundleIDs)

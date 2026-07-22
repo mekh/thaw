@@ -415,6 +415,66 @@ final class MenuBarItemTagTests: XCTestCase {
         }
     }
 
+    @MainActor
+    func testMacOS27NonGovernableMenuBarAgentModulesStayVisibleButMovable() throws {
+        guard #available(macOS 27, *) else {
+            throw XCTSkip("MenuBarAgent policy is macOS 27-specific")
+        }
+
+        for title in ["Sound", "Volume", "Displays", "Display", "Keyboard", "ScreenMirroring"] {
+            let tag = MenuBarItemTag(namespace: .menuBarAgent, title: title)
+            let item = MenuBarItem.fixture(tag: tag, windowID: 1)
+
+            XCTAssertTrue(tag.isMovable, title)
+            XCTAssertEqual(tag.sectionManagementPolicy, .forcedVisible, title)
+            XCTAssertFalse(item.canBeHidden(experimentalSystemItemHiding: false), title)
+            XCTAssertFalse(item.canBeHidden(experimentalSystemItemHiding: true), title)
+            XCTAssertTrue(item.isPhysicallyOrderable(experimentalSystemItemHiding: false), title)
+            XCTAssertFalse(
+                MenuBarSectionController.canAssign(
+                    item,
+                    to: .hidden,
+                    experimentalSystemItemHiding: true
+                ),
+                title
+            )
+        }
+    }
+
+    func testMacOS27AllMenuBarAgentItemsAreForcedVisible() throws {
+        guard #available(macOS 27, *) else {
+            throw XCTSkip("MenuBarAgent policy is macOS 27-specific")
+        }
+
+        let wifi = MenuBarItemTag(namespace: .menuBarAgent, title: "com.apple.menuextra.wifi")
+        let unknown = MenuBarItemTag(namespace: .menuBarAgent, title: "Item-0")
+
+        XCTAssertEqual(wifi.sectionManagementPolicy, .forcedVisible)
+        XCTAssertEqual(unknown.sectionManagementPolicy, .forcedVisible)
+    }
+
+    @MainActor
+    func testMacOS27FocusAndNowPlayingCanBePositionManaged() throws {
+        guard #available(macOS 27, *) else {
+            throw XCTSkip("MenuBarAgent position management is macOS 27-specific")
+        }
+
+        for title in ["com.apple.menuextra.focusmode", "com.apple.menuextra.now-playing"] {
+            let tag = MenuBarItemTag(namespace: .menuBarAgent, title: title)
+            let item = MenuBarItem.fixture(tag: tag, windowID: 1)
+
+            XCTAssertTrue(tag.isPositionManageableMenuBarAgentItem, title)
+            XCTAssertTrue(MenuBarItemTag.isPositionManageableMenuBarAgentIdentifier(tag.description), title)
+            XCTAssertFalse(tag.isMenuBarAgentItemForcedVisible, title)
+            XCTAssertEqual(tag.sectionManagementPolicy, .hideable, title)
+            XCTAssertTrue(MenuBarSectionController.canAssign(
+                item,
+                to: .hidden,
+                experimentalSystemItemHiding: false
+            ), title)
+        }
+    }
+
     func testUnknownMenuBarAgentItemIsNotAnchored() throws {
         guard #available(macOS 27, *) else {
             throw XCTSkip("MenuBarAgent anchoring is macOS 27-specific")
@@ -547,10 +607,10 @@ final class MenuBarItemTagTests: XCTestCase {
         XCTAssertFalse(siri.canBeHidden)
         XCTAssertTrue(siri.sectionManagementPolicy.isVisibleInLayout)
 
-        XCTAssertEqual(wifi.sectionManagementPolicy, .hideable)
-        XCTAssertTrue(wifi.canBeHidden)
-        XCTAssertEqual(weather.sectionManagementPolicy, .hideable)
-        XCTAssertTrue(weather.canBeHidden)
+        XCTAssertEqual(wifi.sectionManagementPolicy, .forcedVisible)
+        XCTAssertFalse(wifi.canBeHidden)
+        XCTAssertEqual(weather.sectionManagementPolicy, .forcedVisible)
+        XCTAssertFalse(weather.canBeHidden)
 
         XCTAssertEqual(app.sectionManagementPolicy, .hideable)
         XCTAssertTrue(app.canBeHidden)
@@ -1069,6 +1129,26 @@ final class MacOS27LayoutAnchorOrderingTests: XCTestCase {
     }
 
     @MainActor
+    func testSanitizedAssignmentRejectsNonGovernableMenuBarAgentModulesWithoutLiveItems() {
+        let sound = MenuBarItemTag(namespace: .menuBarAgent, title: "Sound").tagIdentifier
+        let displays = MenuBarItemTag(namespace: .menuBarAgent, title: "com.apple.menuextra.displays").tagIdentifier
+        let wifi = MenuBarItemTag(namespace: .menuBarAgent, title: "com.apple.menuextra.wifi").tagIdentifier
+        let unknown = MenuBarItemTag(namespace: .menuBarAgent, title: "Item-0").tagIdentifier
+
+        let sanitized = MenuBarSectionController.sanitizedSectionAssignment([
+            sound: .hidden,
+            displays: .alwaysHidden,
+            wifi: .hidden,
+            unknown: .hidden,
+        ])
+
+        XCTAssertNil(sanitized[sound])
+        XCTAssertNil(sanitized[displays])
+        XCTAssertNil(sanitized[wifi])
+        XCTAssertNil(sanitized[unknown])
+    }
+
+    @MainActor
     func testMergeMigratedSectionOrderFromLegacyOrderOnly() {
         let order = MenuBarSectionController.mergeMigratedSectionOrder(
             sharedOrder: nil,
@@ -1343,6 +1423,32 @@ final class MacOS27LayoutAnchorOrderingTests: XCTestCase {
         XCTAssertEqual(
             segment.map(\.uniqueIdentifier),
             [alpha.uniqueIdentifier, thaw.uniqueIdentifier, beta.uniqueIdentifier]
+        )
+    }
+
+    @MainActor
+    func testStructuralVisibleSegmentKeepsLiveOrderForNewForcedVisibleItems() {
+        let sound = item(
+            tag: MenuBarItemTag(namespace: .menuBarAgent, title: "Sound"),
+            x: 100,
+            windowID: 1660
+        )
+        let thaw = item(tag: .visibleControlItem, x: 140, windowID: 1661)
+        let display = item(
+            tag: MenuBarItemTag(namespace: .menuBarAgent, title: "Display"),
+            x: 180,
+            windowID: 1662
+        )
+
+        let segment = MenuBarItemManager.structuralVisibleSegment(
+            ordinaryVisibleItems: [sound, display],
+            visibleControl: thaw,
+            savedOrder: [thaw.uniqueIdentifier]
+        )
+
+        XCTAssertEqual(
+            segment.map(\.uniqueIdentifier),
+            [sound.uniqueIdentifier, display.uniqueIdentifier, thaw.uniqueIdentifier]
         )
     }
 

@@ -97,6 +97,48 @@ public struct MenuBarItemTag: Hashable, CustomStringConvertible, Sendable {
         SystemMenuBarModuleCatalog.controlCenterKeysByMenuExtraTitle[title] != nil
     }
 
+    /// MenuBarAgent extras that can be managed through their stable preferred
+    /// position instead of the assessment assertion. The assertion
+    /// collateral-hides these Control Center modules whenever it conceals a
+    /// third-party app, whereas MenuBarAgent keeps their `status:` / `module:`
+    /// keys independently addressable.
+    public static let positionManageableMenuBarAgentTitles: Set<String> = [
+        "com.apple.menuextra.focusmode",
+        "com.apple.menuextra.now-playing",
+    ]
+
+    /// Whether this MenuBarAgent child has a stable preferred-position hiding
+    /// path.
+    public var isPositionManageableMenuBarAgentItem: Bool {
+        namespace == .menuBarAgent && Self.positionManageableMenuBarAgentTitles.contains(title)
+    }
+
+    /// Whether a persisted `namespace:title[:instance]` identifier names one
+    /// of the MenuBarAgent extras that has a preferred-position hiding path.
+    public static func isPositionManageableMenuBarAgentIdentifier(_ identifier: String) -> Bool {
+        let prefix = "\(Namespace.menuBarAgent.description):"
+        return positionManageableMenuBarAgentTitles.contains {
+            identifier == "\(prefix)\($0)" || identifier.hasPrefix("\(prefix)\($0):")
+        }
+    }
+
+    /// A MenuBarAgent-hosted item that must remain in Visible. The two
+    /// position-manageable Control Center extras are the exception; all other
+    /// children remain assignment-only because macOS 27 owns them as one
+    /// system-hosted family.
+    public var isMenuBarAgentItemForcedVisible: Bool {
+        namespace == .menuBarAgent && !isPositionManageableMenuBarAgentItem
+    }
+
+    /// Whether a persisted `namespace:title[:instance]` identifier names a
+    /// MenuBarAgent child that must remain Visible. This lets assignment
+    /// migration reject stale Hidden entries before the live AX child appears,
+    /// while preserving Focus and Now Playing assignments.
+    public static func isMenuBarAgentForcedVisibleIdentifier(_ identifier: String) -> Bool {
+        let prefix = "\(Namespace.menuBarAgent.description):"
+        return identifier.hasPrefix(prefix) && !isPositionManageableMenuBarAgentIdentifier(identifier)
+    }
+
     /// iStat Menus status-item bundle ID. Titles and identifiers are
     /// canonicalized via ``canonicalIStatMetricTitle`` so live metric values do
     /// not churn layout keys every second.
@@ -144,6 +186,7 @@ public struct MenuBarItemTag: Hashable, CustomStringConvertible, Sendable {
         if #available(macOS 27, *),
            isHidingUnsupported ||
            isLayoutAnchoredSystemItem ||
+           isMenuBarAgentItemForcedVisible ||
            (namespace != .menuBarAgent && isNonConcealableSystemItem && !isControlCenterGovernable)
         {
             return .forcedVisible

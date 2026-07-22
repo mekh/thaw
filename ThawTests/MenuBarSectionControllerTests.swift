@@ -689,6 +689,31 @@ final class MenuBarSectionControllerTests: XCTestCase {
         XCTAssertEqual(controller.revealedSection, .hidden)
     }
 
+    func testShow_DefaultSchedulesBatchOrderSynchronization() {
+        let controller = makeController()
+
+        controller.show(.alwaysHidden)
+
+        XCTAssertEqual(controller.revealedSection, .alwaysHidden)
+        XCTAssertTrue(controller.hasPendingRevealOrderSynchronization)
+        controller.hideRevealedSections()
+        XCTAssertNil(controller.revealedSection)
+        XCTAssertFalse(controller.hasPendingRevealOrderSynchronization)
+    }
+
+    func testShow_CaptureRevealDoesNotScheduleOrderSynchronization() {
+        let controller = makeController()
+
+        controller.show(
+            .alwaysHidden,
+            reconcileBoundary: false,
+            synchronizeOrder: false
+        )
+
+        XCTAssertEqual(controller.revealedSection, .alwaysHidden)
+        XCTAssertFalse(controller.hasPendingRevealOrderSynchronization)
+    }
+
     func testShow_IsIdempotentForSameSection() {
         let controller = makeController()
 
@@ -699,6 +724,18 @@ final class MenuBarSectionControllerTests: XCTestCase {
         // (guarded by `revealedSection != target`); refresh() is a no-op
         // either way here, so this only characterizes the reveal state
         // itself, not call counts into refresh().
+        XCTAssertEqual(controller.revealedSection, .hidden)
+    }
+
+    func testRevealingFocusDoesNotChangeItsPersistedHiddenAssignment() {
+        let controller = makeController()
+        let focusIdentifier = "com.apple.MenuBarAgent:com.apple.menuextra.focusmode"
+
+        controller.setSection(.hidden, identifier: focusIdentifier)
+        controller.show(.hidden)
+
+        XCTAssertEqual(controller.section(for: focusIdentifier), .hidden)
+        XCTAssertEqual(controller.authoredSection(for: focusIdentifier), .hidden)
         XCTAssertEqual(controller.revealedSection, .hidden)
     }
 
