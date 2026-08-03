@@ -443,7 +443,11 @@ final class MenuBarItemImageCache: ObservableObject, @unchecked Sendable {
 
     /// Bump when the capture/display semantics change enough that old images
     /// can be misleading.
-    private static nonisolated let cacheVersion = 9
+    ///
+    /// 10: flush caches written before the concealment guard existed — builds
+    /// up to macOS-27 preview 5 persisted wallpaper/background crops for
+    /// concealed items, and those entries survive "Reset all settings" (#687).
+    private static nonisolated let cacheVersion = 10
 
     /// Saves the image cache to disk for faster restart.
     func saveToDisk() {
@@ -689,6 +693,21 @@ final class MenuBarItemImageCache: ObservableObject, @unchecked Sendable {
                     self.liveRefreshTask?.cancel()
                     self.liveRefreshTask = nil
                     self.startLiveRefreshIfNeeded()
+                }
+                .store(in: &c)
+
+            // While "Use app icons instead of live previews" is on, consumers
+            // never read captured images, so cache entries rot (or carry
+            // poison from older builds) unnoticed. When the preference turns
+            // off, consumers immediately read the cache again — rebuild it
+            // instead of surfacing whatever it held (#687).
+            appState.settings.advanced.$alwaysUseAppIconForMenuBarItems
+                .dropFirst()
+                .removeDuplicates()
+                .filter { !$0 }
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.handleLivePreviewsReenabled()
                 }
                 .store(in: &c)
         }
@@ -2547,8 +2566,17 @@ final class MenuBarItemImageCache: ObservableObject, @unchecked Sendable {
 
     /// Updates the cache for the given sections, without checking whether
     /// caching is necessary.
+    ///
+    /// `ignoreRecentMove` lets a deliberate post-reorder refresh keep its
+    /// result: the reorder itself stamps the move timestamp on verification,
+    /// so without the bypass the corrective capture was always discarded by
+    /// the in-flight guard below and the garbled pre-reorder images stayed
+    /// on screen (#687). Only pass `true` after the bar has settled.
     @MainActor
-    func updateCacheWithoutChecks(sections: [MenuBarSection.Name]) async {
+    func updateCacheWithoutChecks(
+        sections: [MenuBarSection.Name],
+        ignoreRecentMove: Bool = false
+    ) async {
         guard let appState else {
             MenuBarItemImageCache.diagLog.warning("updateCacheWithoutChecks: appState is nil, aborting")
             return
@@ -2605,7 +2633,7 @@ final class MenuBarItemImageCache: ObservableObject, @unchecked Sendable {
             )
 
             guard !appState.itemManager.isResettingLayout,
-                  !appState.itemManager.lastMoveOperationOccurred(within: .seconds(2))
+                  ignoreRecentMove || !appState.itemManager.lastMoveOperationOccurred(within: .seconds(2))
             else {
                 MenuBarItemImageCache.diagLog.debug(
                     "updateCacheWithoutChecks: discarding in-flight capture because layout changed"
@@ -3212,7 +3240,7 @@ final class MenuBarItemImageCache: ObservableObject, @unchecked Sendable {
         }
 
         MenuBarItemImageCache.diagLog.debug("updateCache: proceeding with cache update for \(sections.count) sections (iceBar=\(navSnapshot.isIceBarPresented), search=\(navSnapshot.isSearchPresented), background=\(allowBackgroundCapture))")
-        await updateCacheWithoutChecks(sections: sections)
+        await updateCacheWithoutChecks(sections: sections, ignoreRecentMove: skipRecentMoveCheck)
     }
 
     /// Updates the cache for all sections, if necessary.
@@ -3282,6 +3310,11 @@ final class MenuBarItemImageCache: ObservableObject, @unchecked Sendable {
             return
         }
 
+        // AX order verifies before MenuBarAgent finishes compositing the moved
+        // glyphs; capturing immediately would store a mid-slide frame. One
+        // short render settle mirrors the prewarm paths.
+        try? await Task.sleep(for: Constants.MenuBarTuning.layoutPrewarmRenderSettle)
+
         await updateCache(
             sections: sectionsNeedingDisplay,
             skipRecentMoveCheck: true,
@@ -3310,6 +3343,32 @@ final class MenuBarItemImageCache: ObservableObject, @unchecked Sendable {
         accessCounter = 0
         failedCapturesLock.withLock { $0.removeAll() }
         volatilityIndex.removeAll()
+    }
+
+    /// Rebuilds the cache after "Use app icons instead of live previews"
+    /// turns off.
+    ///
+    /// Clearing is unconditional so no entry that rotted while the preference
+    /// was on can be shown again. Eager recapture only happens while a capture
+    /// consumer is visible; otherwise the layout pane's own preload fills the
+    /// gaps the next time it opens.
+    @MainActor
+    private func handleLivePreviewsReenabled() {
+        clearAll()
+        guard hasVisibleCaptureConsumer() else { return }
+        currentUpdateTask?.cancel()
+        currentUpdateTask = Task { [weak self] in
+            guard let self else { return }
+            if #available(macOS 27, *) {
+                await self.prewarmConcealedImagesMacOS27(
+                    sections: [.hidden, .alwaysHidden],
+                    onlyMissingImages: true
+                )
+            }
+            guard !Task.isCancelled else { return }
+            await self.updateCacheWithoutChecks(sections: MenuBarSection.Name.allCases)
+            self.saveToDisk()
+        }
     }
 
     // MARK: Cache Failed

@@ -339,7 +339,7 @@
 				1ADDA61D49BE1BA7CA5EA059 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
 				9DDA1A418DCA43C89DE5A80F /* XCRemoteSwiftPackageReference "swift-collections" */,
 				7A0DF10D46BE41C9B7301DBB /* XCRemoteSwiftPackageReference "swift-subprocess" */,
-				D27A00002F40000000000000 /* XCLocalSwiftPackageReference "PlatformRuntimeKit" */,
+				D27A00002F40000000000000 /* XCRemoteSwiftPackageReference "prk-bin" */,
 				A4E38A6A423944089D70B9BB /* XCLocalSwiftPackageReference "MenuBarModel" */,
 				AD2D675A051141C9B42279EC /* XCLocalSwiftPackageReference "MenuBarHost" */,
 				A7C4F0052F60000000000005 /* XCLocalSwiftPackageReference "ThawCapture" */,
