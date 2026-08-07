@@ -95,6 +95,10 @@ final class MenuBarManager: ObservableObject {
     /// appearance editor interface
     let appearanceEditorPanel = MenuBarAppearanceEditorPanel()
 
+    /// The popover that contains a portable version of the menu bar
+    /// layout editor interface
+    let layoutEditorPanel = MenuBarLayoutEditorPanel()
+
     /// macOS 27 only: assignment-backed hiding through the Assessment Mode
     /// visibility restriction. `nil` on macOS <=26.
     private(set) var sectionController: MenuBarSectionController?
@@ -148,6 +152,7 @@ final class MenuBarManager: ObservableObject {
         iceBarPanel.performSetup(with: appState)
         searchPanel.performSetup(with: appState)
         appearanceEditorPanel.performSetup(with: appState)
+        layoutEditorPanel.performSetup(with: appState)
         for section in sections {
             section.performSetup(with: appState)
         }
@@ -665,7 +670,7 @@ final class MenuBarManager: ObservableObject {
 
         let editLayoutItem = NSMenuItem(
             title: String(localized: "Edit Layout"),
-            action: #selector(showMenuBarLayoutSettings),
+            action: #selector(showLayoutEditorPanel),
             keyEquivalent: ""
         )
         editLayoutItem.setSymbolImage(
@@ -835,14 +840,19 @@ final class MenuBarManager: ObservableObject {
         }
     }
 
-    /// Shows the menu bar layout settings pane.
-    @objc private func showMenuBarLayoutSettings() {
-        guard let appState else {
+    /// Shows the layout editor panel.
+    @objc private func showLayoutEditorPanel() {
+        guard let screen = MenuBarLayoutEditorPanel.defaultScreen else {
             return
         }
-        appState.navigationState.settingsNavigationIdentifier = .menuBarLayout
-        appState.activate(withPolicy: .regular)
-        appState.openWindow(.settings)
+        layoutEditorPanel.show(on: screen) {
+            self.dismissLayoutEditorPanel()
+        }
+    }
+
+    /// Dismisses the layout editor panel.
+    func dismissLayoutEditorPanel() {
+        layoutEditorPanel.close()
     }
 
     /// Shows the appearance editor panel.
