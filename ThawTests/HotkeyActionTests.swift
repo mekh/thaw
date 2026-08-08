@@ -17,6 +17,7 @@ final class HotkeyActionTests: XCTestCase {
             (.searchMenuBarItems, "SearchMenuBarItems"),
             (.enableIceBar, "EnableIceBar"),
             (.toggleApplicationMenus, "ToggleApplicationMenus"),
+            (.toggleAutoRehide, "ToggleAutoRehide"),
             (.profileApply, "ProfileApply"),
             (.openMenuBarItem, "OpenMenuBarItem"),
         ]
@@ -34,7 +35,7 @@ final class HotkeyActionTests: XCTestCase {
     func testSettingsActionsExcludeExternallyHandledActions() {
         XCTAssertEqual(
             HotkeyAction.settingsActions,
-            [.toggleHiddenSection, .toggleAlwaysHiddenSection, .searchMenuBarItems, .enableIceBar, .toggleApplicationMenus]
+            [.toggleHiddenSection, .toggleAlwaysHiddenSection, .searchMenuBarItems, .enableIceBar, .toggleApplicationMenus, .toggleAutoRehide]
         )
     }
 

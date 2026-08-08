@@ -42801,6 +42801,9 @@
         }
       }
     },
+    "Toggle automatic rehiding" : {
+      "comment" : "A label for a hotkey action that toggles the automatic rehiding of menu bar items."
+    },
     "Toggle the always-hidden section" : {
       "comment" : "A label describing the action of toggling the always-hidden section in the menu bar.",
       "localizations" : {

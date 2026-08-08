@@ -17,6 +17,7 @@ nonisolated enum HotkeyAction: String, Codable, CaseIterable {
     // Other
     case enableIceBar = "EnableIceBar"
     case toggleApplicationMenus = "ToggleApplicationMenus"
+    case toggleAutoRehide = "ToggleAutoRehide"
 
     /// Used by profile hotkeys, action is handled externally.
     case profileApply = "ProfileApply"
@@ -61,6 +62,8 @@ nonisolated enum HotkeyAction: String, Codable, CaseIterable {
             appState.settings.displaySettings.toggleIceBarForActiveDisplay()
         case .toggleApplicationMenus:
             appState.menuBarManager.toggleApplicationMenus()
+        case .toggleAutoRehide:
+            appState.settings.general.autoRehide.toggle()
         case .profileApply:
             // Handled externally by ProfileManager's custom registration.
             break
