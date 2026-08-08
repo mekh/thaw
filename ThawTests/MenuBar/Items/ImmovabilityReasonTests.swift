@@ -83,4 +83,16 @@ struct ImmovabilityReasonTests {
         #expect(item.immovabilityReason == nil)
         #expect(item.isMovable)
     }
+
+    /// The log line is the diagnostic #905 asked for, so each gate has to
+    /// stay tellable from the other by its text alone.
+    @Test("The gates log distinct, non-empty descriptions")
+    func logDescriptionsAreDistinct() {
+        let prohibited = MenuBarItem.ImmovabilityReason.prohibitedSystemItem.logDescription
+        let unresolved = MenuBarItem.ImmovabilityReason.unresolvedControlCenterPlaceholder.logDescription
+        #expect(!prohibited.isEmpty)
+        #expect(!unresolved.isEmpty)
+        #expect(prohibited != unresolved)
+        #expect(unresolved.contains("unresolved"))
+    }
 }
