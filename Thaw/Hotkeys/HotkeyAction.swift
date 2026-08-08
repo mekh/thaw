@@ -63,7 +63,18 @@ nonisolated enum HotkeyAction: String, Codable, CaseIterable {
         case .toggleApplicationMenus:
             appState.menuBarManager.toggleApplicationMenus()
         case .toggleAutoRehide:
-            appState.settings.general.autoRehide.toggle()
+            let general = appState.settings.general
+            general.autoRehide.toggle()
+            // The toggle has no visible effect until the next reveal, so
+            // confirm the new state with a notification.
+            appState.userNotificationManager.requestAuthorization()
+            appState.userNotificationManager.addRequest(
+                with: .hotkeyToggleFeedback,
+                title: general.autoRehide
+                    ? String(localized: "Automatic rehiding is on")
+                    : String(localized: "Automatic rehiding is off"),
+                body: ""
+            )
         case .profileApply:
             // Handled externally by ProfileManager's custom registration.
             break

@@ -81,6 +81,8 @@ extension UserNotificationManager: @MainActor UNUserNotificationCenterDelegate {
                 break
             }
             appState.updatesManager.checkForUpdates()
+        case .hotkeyToggleFeedback:
+            break
         case nil:
             break
         }

@@ -7100,6 +7100,12 @@
         }
       }
     },
+    "Automatic rehiding is on" : {
+      "comment" : "Notification title confirming the auto-rehide hotkey enabled the setting."
+    },
+    "Automatic rehiding is off" : {
+      "comment" : "Notification title confirming the auto-rehide hotkey disabled the setting."
+    },
     "Automatically check for updates" : {
       "comment" : "A toggle that lets the user enable or disable automatic checking for updates.",
       "localizations" : {
