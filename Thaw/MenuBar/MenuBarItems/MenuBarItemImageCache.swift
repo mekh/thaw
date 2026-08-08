@@ -1725,7 +1725,10 @@ final class MenuBarItemImageCache: ObservableObject, @unchecked Sendable {
                       Self.hasStableCaptureBounds(before: bounds, after: postCaptureBounds)
                 else {
                     MenuBarItemImageCache.diagLog.debug(
-                        "axBoundsCapture: bounds changed while capturing \(item.logString); keeping prior image"
+                        // Log both rects: a systematic delta across every item
+                        // means stale cache bounds or a coordinate-basis bug,
+                        // not real movement.
+                        "axBoundsCapture: bounds changed while capturing \(item.logString); keeping prior image (before=\(bounds.debugDescription) after=\(postCaptureBoundsByID[item.uniqueIdentifier]?.debugDescription ?? "missing"))"
                     )
                     result.excluded.append(item)
                     continue

@@ -660,13 +660,15 @@ final class MenuBarItemTagTests: XCTestCase {
         XCTAssertFalse(tag.isControlItem)
     }
 
-    func testSpacerIsControlItem() {
+    func testSpacerIsNotControlItem() {
+        // User-created spacers must stay draggable, reorderable, and
+        // concealable — control items are none of those.
         let tag = MenuBarItemTag(
             namespace: .thaw,
-            title: "Something.Spacer.Item"
+            title: "\(MenuBarSpacerManager.autosavePrefix)5D6A4E2B-0000-0000-0000-000000000000"
         )
 
-        XCTAssertTrue(tag.isControlItem)
+        XCTAssertFalse(tag.isControlItem)
     }
 
     // MARK: - BentoBox Tests

@@ -1447,6 +1447,9 @@
         }
       }
     },
+    "%@ spacer" : {
+      "comment" : "Tooltip on a spacer item in the menu bar. %@ is the app name."
+    },
     "%lf seconds" : {
       "comment" : "A localized string key that represents a duration in seconds. The argument is a number of seconds.",
       "localizations" : {
@@ -3385,6 +3388,9 @@
           }
         }
       }
+    },
+    "Add Spacer" : {
+      "comment" : "Button creating a new menu bar spacer item."
     },
     "Advanced" : {
       "comment" : "The \"Advanced\" section in the \"Settings\" interface.",
@@ -18252,6 +18258,9 @@
         }
       }
     },
+    "Fill the spacer with a color. Fully transparent renders as an empty gap." : {
+      "comment" : "Help tooltip on the spacer color picker."
+    },
     "Find menu bar items visually when searching." : {
 
     },
@@ -22728,6 +22737,9 @@
     "Include visible section in search" : {
 
     },
+    "Inserts an empty gap item into the menu bar. Position it like any other item — hold ⌘ Command and drag it in the menu bar." : {
+      "comment" : "Annotation under the Add Spacer button."
+    },
     "Install Thaw straight from Droppy's Droplets and it stays updated automatically, or toggle hidden items and search your menu bar without leaving the keyboard, right from Raycast." : {
 
     },
@@ -23210,7 +23222,7 @@
     "Items were moved to the Visible section." : {
 
     },
-    "Just the essentials: hiding items, appearance, and hotkeys." : {
+    "Just the essentials: hiding, layout, and appearance." : {
       "comment" : "Card description for the Simple choice during onboarding."
     },
     "Keep search" : {
@@ -32088,6 +32100,9 @@
     "Remove Override for This Space" : {
       "comment" : "Button removing the active Space appearance override."
     },
+    "Remove this spacer" : {
+      "comment" : "Help tooltip on the remove-spacer button."
+    },
     "Rename" : {
       "comment" : "A menu item that lets the user rename a profile.",
       "localizations" : {
@@ -39300,6 +39315,15 @@
           }
         }
       }
+    },
+    "Spacer color" : {
+      "comment" : "Hidden label of the color picker on a spacer row."
+    },
+    "Spacers" : {
+      "comment" : "Section header in the Layout pane for user-created menu bar spacer items."
+    },
+    "Spacer" : {
+      "comment" : "Row label for one menu bar spacer."
     },
     "Spaces with overrides: %lld" : {
       "comment" : "Count of Spaces that have appearance overrides."

@@ -233,6 +233,7 @@ extension Defaults {
         case menuBarItemAlertReveals = "MenuBarItemAlertReveals"
         case menuBarAppearanceSpaceOverrides = "MenuBarAppearanceSpaceOverrides"
         case lockThawBarPosition = "LockThawBarPosition"
+        case menuBarSpacers = "MenuBarSpacers"
         case useIceBar = "UseIceBar"
         case useIceBarOnlyOnNotchedDisplay = "UseIceBarOnlyOnNotchedDisplay"
         case iceBarLocation = "IceBarLocation"

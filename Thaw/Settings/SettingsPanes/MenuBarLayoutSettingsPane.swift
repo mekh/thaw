@@ -53,6 +53,7 @@ struct MenuBarLayoutSettingsPane: View {
                 settings: appState.settings.advanced,
                 isHidingUnavailable: isHidingUnavailable
             )
+            LayoutSpacersSection(spacerManager: appState.spacerManager)
             LayoutIconPreviewControls(settings: appState.settings.advanced)
 
             if canArrangeLayout {
@@ -151,6 +152,59 @@ private struct LayoutSectionOptions: View {
                     message: "This macOS build is missing the system capability Thaw needs to hide items. Reordering still works; hiding does not."
                 )
             }
+        }
+    }
+}
+
+private struct LayoutSpacersSection: View {
+    @ObservedObject var spacerManager: MenuBarSpacerManager
+
+    var body: some View {
+        IceSection {
+            Text("Spacers")
+        } content: {
+            ForEach(spacerManager.spacers) { spacer in
+                LabeledContent {
+                    HStack(spacing: 12) {
+                        ColorPicker(
+                            "Spacer color",
+                            selection: Binding(
+                                get: { spacer.color.map { Color(cgColor: $0.cgColor) } ?? .clear },
+                                set: { newColor in
+                                    spacerManager.setColor(NSColor(newColor).cgColor, for: spacer.id)
+                                }
+                            ),
+                            supportsOpacity: true
+                        )
+                        .labelsHidden()
+                        .help("Fill the spacer with a color. Fully transparent renders as an empty gap.")
+                        IceSlider(
+                            value: Binding(
+                                get: { Double(spacer.width) },
+                                set: { spacerManager.setWidth(CGFloat($0), for: spacer.id) }
+                            ),
+                            in: Double(MenuBarSpacer.minWidth) ... Double(MenuBarSpacer.maxWidth),
+                            step: 4
+                        ) {
+                            Text(verbatim: "\(Int(spacer.width)) pt")
+                                .monospacedDigit()
+                        }
+                        Button {
+                            spacerManager.removeSpacer(id: spacer.id)
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .help("Remove this spacer")
+                    }
+                } label: {
+                    Text("Spacer")
+                }
+            }
+
+            Button("Add Spacer") {
+                spacerManager.addSpacer()
+            }
+            .annotation("Inserts an empty gap item into the menu bar. Position it like any other item — hold ⌘ Command and drag it in the menu bar.")
         }
     }
 }

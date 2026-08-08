@@ -334,8 +334,10 @@ public struct MenuBarItemTag: Hashable, CustomStringConvertible, Sendable {
         if isThawOwnedNamespace, title.hasPrefix("Thaw.ControlItem.") {
             return true
         }
-        return MenuBarItemTag.controlItems.contains(where: { $0.namespace == namespace && $0.title == title }) ||
-            title.contains(".Spacer.")
+        // Note: user-created spacers (`Thaw.Spacer.*`) are deliberately NOT
+        // control items — they must stay draggable, reorderable, and
+        // concealable like any other item.
+        return MenuBarItemTag.controlItems.contains(where: { $0.namespace == namespace && $0.title == title })
     }
 
     /// A Boolean value that indicates whether the item identified

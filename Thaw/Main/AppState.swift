@@ -53,6 +53,9 @@ final class AppState: ObservableObject {
     /// Reveals concealed items temporarily when their icon changes.
     let alertRevealWatcher = MenuBarItemAlertRevealWatcher()
 
+    /// Owner of the user's menu bar spacer items.
+    let spacerManager = MenuBarSpacerManager()
+
     /// Owner of user-authored menu bar item groups.
     let itemGroupManager = MenuBarItemGroupManager()
 
@@ -145,6 +148,7 @@ final class AppState: ObservableObject {
         diagLog.debug("setupTask: starting imageCache setup")
         imageCache.performSetup(with: self)
         alertRevealWatcher.performSetup(with: self)
+        spacerManager.performSetup(with: self)
         diagLog.debug("setupTask: imageCache setup complete")
         updatesManager.performSetup(with: self)
         userNotificationManager.performSetup(with: self)
