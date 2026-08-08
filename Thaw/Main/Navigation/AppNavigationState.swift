@@ -30,7 +30,11 @@ final class AppNavigationState: ObservableObject {
         // to the default (General) in that case.
         if let rawValue = Defaults.string(forKey: .lastSettingsPane),
            let pane = SettingsNavigationIdentifier(rawValue: rawValue),
-           !Defaults.bool(forKey: .simpleMode) || pane.isVisibleInSimpleMode {
+           !Defaults.bool(forKey: .simpleMode) || pane.isVisibleInSimpleMode,
+           // Never restore directly into About: its hand-built card shares
+           // the sidebar's behind-window material, and building the window
+           // with it frontmost can cost the sidebar its rendering.
+           pane != .about {
             settingsNavigationIdentifier = pane
         }
         $settingsNavigationIdentifier
