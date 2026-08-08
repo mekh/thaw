@@ -30370,6 +30370,9 @@
         }
       }
     },
+    "Per-Space override" : {
+      "comment" : "Section header in the appearance editor for per-Space appearance overrides."
+    },
     "Permission Granted" : {
       "comment" : "A label indicating that a user has granted a permission.",
       "localizations" : {
@@ -31933,6 +31936,9 @@
         }
       }
     },
+    "Remove All" : {
+      "comment" : "Button removing every per-Space appearance override."
+    },
     "Remove from whitelist" : {
       "comment" : "A label for a button that removes an app from the whitelist.",
       "localizations" : {
@@ -32051,6 +32057,9 @@
           }
         }
       }
+    },
+    "Remove Override for This Space" : {
+      "comment" : "Button removing the active Space appearance override."
     },
     "Rename" : {
       "comment" : "A menu item that lets the user rename a profile.",
@@ -35298,6 +35307,9 @@
     },
     "Save your current configuration as a named profile. Switch between layouts instantly, or let Thaw switch automatically when you change your frontmost app." : {
       "comment" : "Description of the profiles onboarding slide."
+    },
+    "Saves the appearance above for the currently active Space only. Every other Space keeps the shared appearance." : {
+      "comment" : "Footer under the per-Space override section in the appearance editor."
     },
     "Screen Recording" : {
       "comment" : "Title of the screen recording permission.",
@@ -39253,6 +39265,9 @@
         }
       }
     },
+    "Spaces with overrides: %lld" : {
+      "comment" : "Count of Spaces that have appearance overrides."
+    },
     "Split" : {
       "comment" : "Localized string key for a menu bar shape kind that splits the menu bar between its leading and trailing sides.",
       "localizations" : {
@@ -41650,6 +41665,12 @@
     },
     "This is experimental and uses private window APIs. Hidden items are restored when Thaw quits." : {
 
+    },
+    "This Space uses a saved override." : {
+      "comment" : "Status line: the active Space renders its own saved appearance."
+    },
+    "This Space uses the shared appearance." : {
+      "comment" : "Status line: the active Space renders the shared appearance."
     },
     "This will overwrite the settings of %lld display with the global template. If the active display's spacing changes, Thaw will relaunch each app with a menu bar item. Relaunching apps may cause unsaved input, progress, or transient app state to be lost." : {
       "comment" : "A confirmation message that appears when the user is prompted to apply a global template. The argument is the number of displays that will be affected.",
@@ -45127,6 +45148,9 @@
           }
         }
       }
+    },
+    "Use Current Appearance for This Space" : {
+      "comment" : "Button saving the shared appearance as the active Space override."
     },
     "Use dynamic appearance" : {
       "comment" : "A toggle that lets the user choose whether to use different appearance settings based on the current system appearance.",

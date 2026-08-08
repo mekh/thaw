@@ -230,6 +230,7 @@ extension Defaults {
         case showSettingDescriptions = "ShowSettingDescriptions"
         case lastSettingsPane = "LastSettingsPane"
         case menuBarItemAlertReveals = "MenuBarItemAlertReveals"
+        case menuBarAppearanceSpaceOverrides = "MenuBarAppearanceSpaceOverrides"
         case useIceBar = "UseIceBar"
         case useIceBarOnlyOnNotchedDisplay = "UseIceBarOnlyOnNotchedDisplay"
         case iceBarLocation = "IceBarLocation"

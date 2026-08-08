@@ -20,6 +20,17 @@ final class MenuBarAppearanceManager: ObservableObject {
     /// The currently previewed partial configuration.
     @Published var previewConfiguration: MenuBarAppearancePartialConfiguration?
 
+    /// Appearance overrides applied while a specific Space is active, keyed
+    /// by the Space's `CGSSpaceID` rendered as a string for storage.
+    @Published private(set) var spaceOverrides: [String: MenuBarAppearanceConfigurationV2] = [:]
+
+    /// The most recently observed active Space.
+    @Published private(set) var activeSpaceID = SpaceInfo.activeSpace().spaceID
+
+    /// The configuration the overlay panels render: the active Space's
+    /// override when one exists, otherwise the shared `configuration`.
+    @Published private(set) var effectiveConfiguration = Defaults.DefaultValue.menuBarAppearanceConfigurationV2
+
     /// The shared app state.
     private weak var appState: AppState?
 
@@ -68,6 +79,47 @@ final class MenuBarAppearanceManager: ObservableObject {
         } catch {
             diagLog.error("Error decoding menu bar appearance configuration: \(error)")
         }
+        do {
+            if let data = Defaults.data(forKey: .menuBarAppearanceSpaceOverrides) {
+                spaceOverrides = try decoder.decode(
+                    [String: MenuBarAppearanceConfigurationV2].self,
+                    from: data
+                )
+            }
+        } catch {
+            diagLog.error("Error decoding per-Space appearance overrides: \(error)")
+        }
+    }
+
+    // MARK: Per-Space Overrides
+
+    /// Resolves the configuration for a Space. Pure so it is unit-testable.
+    static nonisolated func effectiveConfiguration(
+        base: MenuBarAppearanceConfigurationV2,
+        overrides: [String: MenuBarAppearanceConfigurationV2],
+        activeSpaceID: CGSSpaceID
+    ) -> MenuBarAppearanceConfigurationV2 {
+        overrides[String(activeSpaceID)] ?? base
+    }
+
+    /// Whether the active Space renders a saved override.
+    var activeSpaceHasOverride: Bool {
+        spaceOverrides[String(activeSpaceID)] != nil
+    }
+
+    /// Saves the shared configuration as the active Space's override.
+    func saveOverrideForActiveSpace() {
+        spaceOverrides[String(activeSpaceID)] = configuration
+    }
+
+    /// Removes the active Space's override, if any.
+    func removeOverrideForActiveSpace() {
+        spaceOverrides[String(activeSpaceID)] = nil
+    }
+
+    /// Removes every per-Space override.
+    func removeAllSpaceOverrides() {
+        spaceOverrides = [:]
     }
 
     /// Configures the internal observers for the manager.
@@ -112,7 +164,42 @@ final class MenuBarAppearanceManager: ObservableObject {
             }
             .store(in: &c)
 
-        $configuration
+        $spaceOverrides
+            .dropFirst()
+            .encode(encoder: encoder)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                if case let .failure(error) = completion {
+                    self?.diagLog.error("Error encoding per-Space appearance overrides: \(error)")
+                }
+            } receiveValue: { data in
+                Defaults.set(data, forKey: .menuBarAppearanceSpaceOverrides)
+            }
+            .store(in: &c)
+
+        NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.activeSpaceID = SpaceInfo.activeSpace().spaceID
+            }
+            .store(in: &c)
+
+        Publishers.CombineLatest3($configuration, $spaceOverrides, $activeSpaceID)
+            .map { configuration, overrides, spaceID in
+                Self.effectiveConfiguration(
+                    base: configuration,
+                    overrides: overrides,
+                    activeSpaceID: spaceID
+                )
+            }
+            .removeDuplicates()
+            .sink { [weak self] effective in
+                self?.effectiveConfiguration = effective
+            }
+            .store(in: &c)
+
+        $effectiveConfiguration
             .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] configuration in
                 guard let self else {

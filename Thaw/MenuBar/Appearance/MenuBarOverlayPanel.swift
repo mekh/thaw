@@ -680,7 +680,7 @@ final class MenuBarOverlayPanel: NSPanel {
             }
             .store(in: &c)
 
-            appState.appearanceManager.$configuration
+            appState.appearanceManager.$effectiveConfiguration
                 .sink { [weak self] _ in
                     self?.updateWindowLevel()
                 }
@@ -834,7 +834,7 @@ final class MenuBarOverlayPanel: NSPanel {
     /// so the menu bar's own blur blends the content and items stay crisp.
     private func updateWindowLevel() {
         guard let appState else { return }
-        let config = appState.appearanceManager.configuration
+        let config = appState.appearanceManager.effectiveConfiguration
         if config.current.tintKind != .noTint || config.shapeKind != .noShape || config.current.backgroundKind != .none {
             level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)) - 1)
         } else {
@@ -974,7 +974,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
 
         if let overlayPanel {
             if let appState = overlayPanel.appState {
-                appState.appearanceManager.$configuration
+                appState.appearanceManager.$effectiveConfiguration
                     .sink { [weak self] config in
                         self?.fullConfiguration = config
                     }
@@ -984,7 +984,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
                     .debounce(for: .seconds(0), scheduler: DispatchQueue.main)
                     .sink { [weak self] _ in
                         guard let self else { return }
-                        fullConfiguration = appState.appearanceManager.configuration
+                        fullConfiguration = appState.appearanceManager.effectiveConfiguration
                     }
                     .store(in: &c)
 
