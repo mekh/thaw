@@ -43,9 +43,9 @@ enum SettingsNavigationIdentifier: String, @MainActor NavigationIdentifier {
     /// General must stay visible because it hosts the Simple Mode toggle.
     var isVisibleInSimpleMode: Bool {
         switch self {
-        case .general, .displays, .menuBarAppearance, .hotkeys, .about:
+        case .general, .menuBarLayout, .displays, .menuBarAppearance, .about:
             true
-        case .menuBarLayout, .profiles, .advanced, .automation, .tools:
+        case .hotkeys, .profiles, .advanced, .automation, .tools:
             false
         }
     }

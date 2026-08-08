@@ -80,7 +80,7 @@ struct SettingsSearchNavigationTests {
     @MainActor
     func simpleModePaneVisibility() {
         let visible = SettingsNavigationIdentifier.allCases.filter(\.isVisibleInSimpleMode)
-        #expect(visible == [.general, .displays, .menuBarAppearance, .hotkeys, .about])
+        #expect(visible == [.general, .menuBarLayout, .displays, .menuBarAppearance, .about])
         // General hosts the Simple Mode toggle itself, so hiding it would
         // leave no way back to the full settings surface.
         #expect(SettingsNavigationIdentifier.general.isVisibleInSimpleMode)

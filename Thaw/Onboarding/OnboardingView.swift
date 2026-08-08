@@ -115,7 +115,7 @@ private struct ThawModeChoiceView: View {
                 choiceCard(
                     title: String(localized: "Simple"),
                     symbol: "sparkles",
-                    description: String(localized: "Just the essentials: hiding items, appearance, and hotkeys."),
+                    description: String(localized: "Just the essentials: hiding, layout, and appearance."),
                     simpleMode: true
                 )
                 choiceCard(
