@@ -4844,8 +4844,7 @@ extension MenuBarItemManager {
         on displayID: CGDirectDisplayID? = nil,
         skipInputPause: Bool = false,
         watchdogTimeout: Duration? = nil,
-        maxMoveAttempts: Int = 8,
-        skipMenuOpenWait: Bool = false
+        maxMoveAttempts: Int = 8
     ) async throws {
         // System clone windows are transient WindowServer duplicates that
         // must never be moved. Refuse here as a final safety net so no
@@ -4867,16 +4866,8 @@ extension MenuBarItemManager {
         // Never drag an item while a menu bar item menu is tracking — a synthetic
         // Cmd-drag tears down the user's interaction (Wi-Fi picker, input methods).
         // Wait briefly for the menu to close; if it stays open, give up this attempt.
-        //
-        // skipMenuOpenWait is for moves that a drop in our own layout bar just
-        // requested. Menu tracking captures the event loop, so a drag cannot
-        // complete in the settings window while any menu bar menu is open —
-        // the completed drop is stronger evidence than the probe, whose
-        // false positives (a notch app's untitled status-level window that
-        // appears for the drag session, #899) otherwise turn the wait into a
-        // five-second stall followed by silently discarding the user's drag.
         var menuWaitAttempts = 0
-        while !skipMenuOpenWait, await isAnyMenuBarItemMenuOpen() {
+        while await isAnyMenuBarItemMenuOpen() {
             menuWaitAttempts += 1
             if menuWaitAttempts > 20 { // ~5s at 250ms steps
                 MenuBarItemManager.diagLog.warning("move: menu still open after wait; deferring move of \(item.logString)")

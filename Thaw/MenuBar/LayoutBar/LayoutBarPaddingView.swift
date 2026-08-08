@@ -234,8 +234,7 @@ final class LayoutBarPaddingView: NSView {
                     item: item,
                     to: destination,
                     skipInputPause: true,
-                    watchdogTimeout: MenuBarItemManager.layoutWatchdogTimeout,
-                    skipMenuOpenWait: true
+                    watchdogTimeout: MenuBarItemManager.layoutWatchdogTimeout
                 )
                 appState.itemManager.removeTemporarilyShownItemFromCache(with: item.tag)
                 await stabilizePlacement(of: item, to: destination, expectedSection: container.section, appState: appState)
@@ -292,8 +291,7 @@ final class LayoutBarPaddingView: NSView {
                             item: item,
                             to: destination,
                             skipInputPause: true,
-                            watchdogTimeout: MenuBarItemManager.layoutWatchdogTimeout,
-                            skipMenuOpenWait: true
+                            watchdogTimeout: MenuBarItemManager.layoutWatchdogTimeout
                         )
                         appState.itemManager.removeTemporarilyShownItemFromCache(with: item.tag)
                         await stabilizePlacement(of: item, to: destination, expectedSection: container.section, appState: appState)
@@ -461,8 +459,7 @@ final class LayoutBarPaddingView: NSView {
                     item: item,
                     to: destination,
                     skipInputPause: true,
-                    watchdogTimeout: MenuBarItemManager.layoutWatchdogTimeout,
-                    skipMenuOpenWait: true
+                    watchdogTimeout: MenuBarItemManager.layoutWatchdogTimeout
                 )
                 await appState.itemManager.cacheItemsRegardless(skipRecentMoveCheck: true)
             } catch {
