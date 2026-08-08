@@ -237,16 +237,25 @@ struct AboutSettingsPane: View {
         }
     }
 
+    @ViewBuilder
     private var updateChannel: some View {
-        HStack {
-            Text("Update channel")
-            Spacer()
-            if #available(macOS 27, *) {
+        if #available(macOS 27, *) {
+            HStack {
+                Text("Update channel")
+                Spacer()
                 // macOS 27 ships exclusively through Nightly; the channel is
                 // locked so users can't switch to a build without 27 support.
                 Text("Nightly")
                     .foregroundStyle(.secondary)
-            } else {
+                updateButton
+            }
+            .annotation(
+                "Nightly is the only update channel currently offered for macOS 27. As support matures, releases will move to the Development channel and, eventually, Stable."
+            )
+        } else {
+            HStack {
+                Text("Update channel")
+                Spacer()
                 Picker(
                     "Update channel",
                     selection: Binding(
@@ -260,8 +269,8 @@ struct AboutSettingsPane: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+                updateButton
             }
-            updateButton
         }
     }
 

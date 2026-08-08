@@ -27592,6 +27592,9 @@
     "Nightly" : {
       "comment" : "A label for the \"Nightly\" segment in the update channel picker."
     },
+    "Nightly is the only update channel currently offered for macOS 27. As support matures, releases will move to the Development channel and, eventually, Stable." : {
+      "comment" : "Annotation under the locked update-channel row on macOS 27 explaining why Nightly is the only choice."
+    },
     "No analytics usage tracking" : {
 
     },

@@ -65,7 +65,7 @@ nonisolated struct SearchEntry: Identifiable, @unchecked Sendable {
 nonisolated enum SearchIndex {
     /// Entries indexed on every supported macOS release.
     private static let sharedEntries: [SearchEntry] = paneEntries + generalEntries + revealEntries + advancedEntries
-        + displayEntries + hotkeyEntries + layoutEntries + appearanceEntries
+        + displayEntries + hotkeyEntries + layoutEntries + appearanceEntries + aboutEntries
 
     /// macOS 27-only settings rows, appended when the sidebar search UI is available.
     private static let macOS27Entries: [SearchEntry] = [
@@ -925,6 +925,44 @@ nonisolated enum SearchIndex {
             sectionKey: nil,
             sectionText: nil,
             keywords: ["reset", "appearance", "default"],
+            property: nil
+        ),
+    ]
+
+    // MARK: About Settings
+
+    private static let aboutEntries: [SearchEntry] = [
+        SearchEntry(
+            id: "about.automaticallyCheckForUpdates",
+            titleKey: "Automatically check for updates",
+            titleText: "Automatically check for updates",
+            descriptionText: nil,
+            pane: .about,
+            sectionKey: "Updates",
+            sectionText: "Updates",
+            keywords: ["update", "automatic", "check", "sparkle"],
+            property: nil
+        ),
+        SearchEntry(
+            id: "about.automaticallyDownloadUpdates",
+            titleKey: "Automatically download updates",
+            titleText: "Automatically download updates",
+            descriptionText: nil,
+            pane: .about,
+            sectionKey: "Updates",
+            sectionText: "Updates",
+            keywords: ["update", "automatic", "download", "sparkle"],
+            property: nil
+        ),
+        SearchEntry(
+            id: "about.updateChannel",
+            titleKey: "Update channel",
+            titleText: "Update channel",
+            descriptionText: "Choose which release channel updates come from: Stable, Development, or Nightly.",
+            pane: .about,
+            sectionKey: "Updates",
+            sectionText: "Updates",
+            keywords: ["update", "channel", "nightly", "alpha", "beta", "development", "stable", "prerelease", "release"],
             property: nil
         ),
     ]
