@@ -595,3 +595,53 @@ final class ProfileContentTests: XCTestCase {
         XCTAssertTrue(content.displayConfigurations.isEmpty)
     }
 }
+
+final class ProfilePreviewModelTests: XCTestCase {
+    func testSplitParsesNamespaceAndTitle() {
+        let parsed = ProfilePreviewModel.split("com.example.app:Item Title")
+        XCTAssertEqual(parsed.namespace, "com.example.app")
+        XCTAssertEqual(parsed.title, "Item Title")
+    }
+
+    func testSplitOnFirstColonOnly() {
+        let parsed = ProfilePreviewModel.split("com.example.app:Title: With Colon")
+        XCTAssertEqual(parsed.namespace, "com.example.app")
+        XCTAssertEqual(parsed.title, "Title: With Colon")
+    }
+
+    func testSplitWithoutColonFallsBackToWholeIdentifier() {
+        let parsed = ProfilePreviewModel.split("com.example.app")
+        XCTAssertEqual(parsed.namespace, "com.example.app")
+        XCTAssertEqual(parsed.title, "com.example.app")
+    }
+
+    func testSectionsPreferItemOrderAndApplyCustomNames() {
+        let snapshot = MenuBarLayoutSnapshot(
+            savedSectionOrder: ["visible": ["legacy.app"]],
+            pinnedHiddenBundleIDs: [],
+            pinnedAlwaysHiddenBundleIDs: [],
+            customNames: ["com.example.app:Item": "Renamed"],
+            itemOrder: ["visible": ["com.example.app:Item"], "hidden": ["com.other.app:Other"]]
+        )
+        let sections = ProfilePreviewModel.sections(for: snapshot)
+        XCTAssertEqual(sections.map(\.key), ["visible", "hidden", "alwaysHidden"])
+        XCTAssertEqual(
+            sections[0].items,
+            [ProfilePreviewModel.Item(id: "com.example.app:Item", bundleID: "com.example.app", title: "Renamed")]
+        )
+        XCTAssertEqual(sections[1].items.map(\.title), ["Other"])
+        XCTAssertTrue(sections[2].items.isEmpty)
+    }
+
+    func testSectionsFallBackToLegacyOrderWhenItemOrderMissing() {
+        let snapshot = MenuBarLayoutSnapshot(
+            savedSectionOrder: ["visible": ["com.legacy.app"]],
+            pinnedHiddenBundleIDs: [],
+            pinnedAlwaysHiddenBundleIDs: [],
+            customNames: [:]
+        )
+        let sections = ProfilePreviewModel.sections(for: snapshot)
+        XCTAssertEqual(sections[0].items.map(\.bundleID), ["com.legacy.app"])
+        XCTAssertEqual(sections[0].items.map(\.title), ["com.legacy.app"])
+    }
+}
