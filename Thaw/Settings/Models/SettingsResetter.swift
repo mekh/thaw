@@ -36,6 +36,8 @@ extension AppSettings {
         general.iceIcon = Defaults.DefaultValue.iceIcon
         general.lastCustomIceIcon = nil
         general.customIceIconIsTemplate = Defaults.DefaultValue.customIceIconIsTemplate
+        general.simpleMode = Defaults.DefaultValue.simpleMode
+        general.showSettingDescriptions = Defaults.DefaultValue.showSettingDescriptions
         general.useIceBar = Defaults.DefaultValue.useIceBar
         general.useIceBarOnlyOnNotchedDisplay = Defaults.DefaultValue.useIceBarOnlyOnNotchedDisplay
         general.iceBarLocation = Defaults.DefaultValue.iceBarLocation
