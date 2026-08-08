@@ -36,6 +36,20 @@ enum SettingsNavigationIdentifier: String, @MainActor NavigationIdentifier {
         }
     }
 
+    /// Whether the pane stays visible while Simple Mode is active.
+    ///
+    /// Simple Mode only trims the settings surface (sidebar and search);
+    /// hidden panes remain fully functional and reachable programmatically.
+    /// General must stay visible because it hosts the Simple Mode toggle.
+    var isVisibleInSimpleMode: Bool {
+        switch self {
+        case .general, .displays, .menuBarAppearance, .hotkeys, .about:
+            true
+        case .menuBarLayout, .profiles, .advanced, .automation, .tools:
+            false
+        }
+    }
+
     var iconResource: IconResource {
         switch self {
         case .general: .systemSymbol("gearshape")

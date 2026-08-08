@@ -17,6 +17,7 @@ struct SettingsView: View {
 
     let appState: AppState
     @ObservedObject var navigationState: AppNavigationState
+    @ObservedObject var generalSettings: GeneralSettings
     @State private var settingsWindow: NSWindow?
 
     var body: some View {
@@ -41,6 +42,7 @@ struct SettingsView: View {
                         .ignoresSafeArea(.container, edges: .top)
                 }
         }
+        .environment(\.settingsDescriptionsVisible, generalSettings.showSettingDescriptions)
         // Keep the window titled for Mission Control; omit the toolbar label so
         // it does not fight the in-pane header while scrolling.
         .navigationTitle("")
@@ -159,10 +161,16 @@ struct SettingsView: View {
     private var sidebar: some View {
         Group {
             if #available(macOS 27, *) {
-                SettingsSearchSidebar(navigationState: navigationState)
+                SettingsSearchSidebar(
+                    navigationState: navigationState,
+                    generalSettings: appState.settings.general
+                )
             } else {
-                SettingsSidebarPaneList(navigationState: navigationState)
-                    .navigationSplitViewColumnWidth(ideal: 200, max: 240)
+                SettingsSidebarPaneList(
+                    navigationState: navigationState,
+                    generalSettings: appState.settings.general
+                )
+                .navigationSplitViewColumnWidth(ideal: 200, max: 240)
             }
         }
         .background {
@@ -271,6 +279,7 @@ extension PrimitiveButtonStyle where Self == SettingsGlassButtonStyle {
 private struct SettingsSearchSidebar: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject var navigationState: AppNavigationState
+    @ObservedObject var generalSettings: GeneralSettings
 
     @StateObject private var searchModel = SearchModel()
 
@@ -293,7 +302,8 @@ private struct SettingsSearchSidebar: View {
                 switch contentMode {
                 case .navigation:
                     SettingsSidebarPaneList(
-                        navigationState: navigationState
+                        navigationState: navigationState,
+                        generalSettings: generalSettings
                     )
                 case .results:
                     SearchResultsList(groups: searchModel.displayedGroups) { entry in
@@ -312,6 +322,9 @@ private struct SettingsSearchSidebar: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .navigationSplitViewColumnWidth(ideal: 200, max: 240)
+        .onChange(of: generalSettings.simpleMode) { _, _ in
+            searchModel.updateDisplayedItems()
+        }
     }
 
     private var contentTransition: AnyTransition {
@@ -330,6 +343,13 @@ private struct SettingsSearchSidebar: View {
 /// The default settings sidebar navigation list.
 private struct SettingsSidebarPaneList: View {
     @ObservedObject var navigationState: AppNavigationState
+    @ObservedObject var generalSettings: GeneralSettings
+
+    private var visibleIdentifiers: [SettingsNavigationIdentifier] {
+        generalSettings.simpleMode
+            ? SettingsNavigationIdentifier.allCases.filter(\.isVisibleInSimpleMode)
+            : SettingsNavigationIdentifier.allCases
+    }
 
     var body: some View {
         let selection = Binding<SettingsNavigationIdentifier>(
@@ -344,7 +364,7 @@ private struct SettingsSidebarPaneList: View {
 
         List(selection: selection) {
             Section {
-                ForEach(SettingsNavigationIdentifier.allCases) { identifier in
+                ForEach(visibleIdentifiers) { identifier in
                     Label {
                         Text(identifier.localized)
                     } icon: {
@@ -356,5 +376,16 @@ private struct SettingsSidebarPaneList: View {
         }
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
+        .onChange(of: generalSettings.simpleMode) { _, simpleMode in
+            // Deselecting a now-hidden pane, not disabling it: the pane stays
+            // reachable via the settings URI, which is the intended escape
+            // hatch while Simple Mode is on.
+            if simpleMode, !navigationState.settingsNavigationIdentifier.isVisibleInSimpleMode {
+                SettingsSearchNavigation.selectSidebarPane(
+                    .general,
+                    navigationState: navigationState
+                )
+            }
+        }
     }
 }

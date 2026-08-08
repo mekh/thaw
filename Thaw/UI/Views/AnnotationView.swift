@@ -124,16 +124,29 @@ struct AnnotationView<Parent: View, Content: View, ForegroundStyle: ShapeStyle>:
         }
     }
 
+    @Environment(\.settingsDescriptionsVisible) private var descriptionsVisible
+
     var body: some View {
         VStack(alignment: alignment, spacing: spacing) {
             parent
-            content
-                .font(font)
-                .foregroundStyle(foregroundStyle)
+            if descriptionsVisible {
+                content
+                    .font(font)
+                    .foregroundStyle(foregroundStyle)
+            }
         }
         .frame(maxWidth: .infinity, alignment: Alignment(horizontal: alignment, vertical: .center))
         .fixedSize(horizontal: false, vertical: true)
     }
+}
+
+extension EnvironmentValues {
+    /// Whether explanatory captions below settings rows are shown.
+    ///
+    /// Defaults to `true` so surfaces outside the settings window (such as
+    /// the standalone appearance editor) keep their captions regardless of
+    /// the "Show setting descriptions" preference.
+    @Entry var settingsDescriptionsVisible: Bool = true
 }
 
 extension View {

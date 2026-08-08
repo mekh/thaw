@@ -31,6 +31,16 @@ final class GeneralSettings: ObservableObject {
     /// should be rendered as template images.
     @Published var customIceIconIsTemplate = Defaults.DefaultValue.customIceIconIsTemplate
 
+    /// A Boolean value that indicates whether Simple Mode is active.
+    ///
+    /// Simple Mode hides advanced panes from the settings window; it never
+    /// disables the features themselves or discards their configuration.
+    @Published var simpleMode = Defaults.DefaultValue.simpleMode
+
+    /// A Boolean value that indicates whether the settings window shows the
+    /// explanatory captions below rows.
+    @Published var showSettingDescriptions = Defaults.DefaultValue.showSettingDescriptions
+
     // MARK: - Deprecated (Per-Display Migration)
 
     // These properties are kept for one release cycle for downgrade safety.
@@ -110,6 +120,8 @@ final class GeneralSettings: ObservableObject {
     private func loadInitialState() {
         Defaults.ifPresent(key: .showIceIcon, assign: &showIceIcon)
         Defaults.ifPresent(key: .customIceIconIsTemplate, assign: &customIceIconIsTemplate)
+        Defaults.ifPresent(key: .simpleMode, assign: &simpleMode)
+        Defaults.ifPresent(key: .showSettingDescriptions, assign: &showSettingDescriptions)
         Defaults.ifPresent(key: .useIceBar, assign: &useIceBar)
         Defaults.ifPresent(key: .useIceBarOnlyOnNotchedDisplay, assign: &useIceBarOnlyOnNotchedDisplay)
         Defaults.ifPresent(key: .iceBarLocationOnHotkey, assign: &iceBarLocationOnHotkey)
@@ -171,6 +183,8 @@ final class GeneralSettings: ObservableObject {
             .store(in: &c)
 
         $customIceIconIsTemplate.persistToDefaults(key: .customIceIconIsTemplate, in: &c)
+        $simpleMode.persistToDefaults(key: .simpleMode, in: &c)
+        $showSettingDescriptions.persistToDefaults(key: .showSettingDescriptions, in: &c)
         $useIceBar.persistToDefaults(key: .useIceBar, in: &c)
         $useIceBarOnlyOnNotchedDisplay.persistToDefaults(key: .useIceBarOnlyOnNotchedDisplay, in: &c)
         $iceBarLocation.persistToDefaults(key: .iceBarLocation, transform: \.rawValue, in: &c)
@@ -211,6 +225,10 @@ final class GeneralSettings: ObservableObject {
                 showIceIcon = boolValue
             case "customIceIconIsTemplate" where customIceIconIsTemplate != boolValue:
                 customIceIconIsTemplate = boolValue
+            case "simpleMode" where simpleMode != boolValue:
+                simpleMode = boolValue
+            case "showSettingDescriptions" where showSettingDescriptions != boolValue:
+                showSettingDescriptions = boolValue
             case "useIceBar" where useIceBar != boolValue:
                 useIceBar = boolValue
             case "useIceBarOnlyOnNotchedDisplay" where useIceBarOnlyOnNotchedDisplay != boolValue:

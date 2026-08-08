@@ -15,7 +15,11 @@ struct SettingsWindow: Scene {
 
     var body: some Scene {
         IceWindow(id: .settings, appState: appState) {
-            SettingsView(appState: appState, navigationState: appState.navigationState)
+            SettingsView(
+                appState: appState,
+                navigationState: appState.navigationState,
+                generalSettings: appState.settings.general
+            )
                 .sheet(isPresented: $appState.isUpdateConsentPresented) {
                     UpdateConsentSheet { autoDownload in
                         appState.isUpdateConsentPresented = false
@@ -32,7 +36,9 @@ struct SettingsWindow: Scene {
                     }
                 }
                 .sheet(isPresented: $appState.isOnboardingPresented) {
-                    ThawOnboardingView(showsCompletionScreen: false) {
+                    ThawOnboardingView(showsCompletionScreen: false) { simpleMode in
+                        appState.settings.general.simpleMode = simpleMode
+                    } onComplete: {
                         Defaults.set(true, forKey: .hasSeenOnboarding)
                         appState.isOnboardingPresented = false
                     }

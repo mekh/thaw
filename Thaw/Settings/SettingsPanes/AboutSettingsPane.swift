@@ -13,6 +13,7 @@ struct AboutSettingsPane: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.settingsDescriptionsVisible) private var descriptionsVisible
 
     private static let iconSize: CGFloat = 180
     private static let iconCenter = iconSize / 2
@@ -240,18 +241,25 @@ struct AboutSettingsPane: View {
     @ViewBuilder
     private var updateChannel: some View {
         if #available(macOS 27, *) {
-            HStack {
-                Text("Update channel")
-                Spacer()
-                // macOS 27 ships exclusively through Nightly; the channel is
-                // locked so users can't switch to a build without 27 support.
-                Text("Nightly")
-                    .foregroundStyle(.secondary)
-                updateButton
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("Update channel")
+                    Spacer()
+                    // macOS 27 ships exclusively through Nightly; the channel is
+                    // locked so users can't switch to a build without 27 support.
+                    Text("Nightly")
+                        .foregroundStyle(.secondary)
+                    updateButton
+                }
+                // Hand-built caption, not `.annotation` — see updatesSection:
+                // form helpers on this card cost the sidebar its vibrancy.
+                if descriptionsVisible {
+                    Text("Nightly is the only update channel currently offered for macOS 27. As support matures, releases will move to the Development channel and, eventually, Stable.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            .annotation(
-                "Nightly is the only update channel currently offered for macOS 27. As support matures, releases will move to the Development channel and, eventually, Stable."
-            )
         } else {
             HStack {
                 Text("Update channel")

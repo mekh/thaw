@@ -37,7 +37,9 @@ private struct PermissionsFlowView: View {
     var body: some View {
         switch stage {
         case .onboarding:
-            ThawOnboardingView(showsCompletionScreen: false) {
+            ThawOnboardingView(showsCompletionScreen: false) { simpleMode in
+                appState.settings.general.simpleMode = simpleMode
+            } onComplete: {
                 Defaults.set(true, forKey: .hasSeenOnboarding)
                 appState.permissions.refreshPermissionsState()
                 appState.completeFirstLaunchSetup()

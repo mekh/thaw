@@ -287,6 +287,28 @@ nonisolated enum SearchIndex {
             property: nil
         ),
         SearchEntry(
+            id: "general.simpleMode",
+            titleKey: "Simple Mode",
+            titleText: "Simple Mode",
+            descriptionText: "Shows only the essential settings. All features keep working and keep their configuration.",
+            pane: .general,
+            sectionKey: nil,
+            sectionText: nil,
+            keywords: ["simple", "mode", "basic", "essential", "minimal", "advanced", "hide"],
+            property: .general("simpleMode")
+        ),
+        SearchEntry(
+            id: "general.showSettingDescriptions",
+            titleKey: "Show setting descriptions",
+            titleText: "Show setting descriptions",
+            descriptionText: "Explains what a setting does directly beneath it.",
+            pane: .general,
+            sectionKey: nil,
+            sectionText: nil,
+            keywords: ["descriptions", "captions", "details", "help", "annotations", "explanations"],
+            property: .general("showSettingDescriptions")
+        ),
+        SearchEntry(
             id: "general.showIceIcon",
             titleKey: "Show \(Constants.displayName) icon",
             titleText: "Show \(Constants.displayName) icon",

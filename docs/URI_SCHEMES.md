@@ -144,6 +144,8 @@ Thaw supports programmatic settings manipulation via the `thaw://` URL scheme wi
 | `enableDiagnosticLogging`                 | Bool | Enable debug logging                         |
 | `customIceIconIsTemplate`                 | Bool | Custom icon renders as template              |
 | `showIceIcon`                             | Bool | Show the Thaw icon in menu bar               |
+| `simpleMode`                              | Bool | Hide advanced panes from the settings window |
+| `showSettingDescriptions`                 | Bool | Show explanatory captions below settings     |
 | `iceBarLocationOnHotkey`                  | Bool | IceBar appears at mouse location on hotkey     |
 | `useLCSSortingOnNotchedDisplays`          | Bool | Use LCS sorting on notched displays          |
 | `enableMenuBarItemOverflow`               | Bool | Enable menu bar item overflow                |

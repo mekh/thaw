@@ -10923,6 +10923,9 @@
         }
       }
     },
+    "Choose Your Starting Point" : {
+      "comment" : "Title of the onboarding step where the user picks Simple Mode or the full settings surface."
+    },
     "Clear" : {
       "comment" : "A glass style that is clear.",
       "localizations" : {
@@ -17499,6 +17502,9 @@
         }
       }
     },
+    "Every option, including layout, profiles, and automation." : {
+      "comment" : "Card description for the Full choice during onboarding."
+    },
     "Example: a bash pre-hook could `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` to keep iStat Menus in sync with Thaw." : {
       "comment" : "A description of how to use environment variables in a pre-hook.",
       "localizations" : {
@@ -17620,6 +17626,9 @@
     },
     "Experimental. May cause layout issues on some setups. Only affects macOS 27+ notched displays." : {
 
+    },
+    "Explains what a setting does directly beneath it, like this text." : {
+      "comment" : "Annotation under the Show setting descriptions toggle."
     },
     "Export" : {
       "comment" : "A menu item that exports a profile to a file.",
@@ -23170,6 +23179,9 @@
     },
     "Items were moved to the Visible section." : {
 
+    },
+    "Just the essentials: hiding items, appearance, and hotkeys." : {
+      "comment" : "Card description for the Simple choice during onboarding."
     },
     "Keep search" : {
       "comment" : "A toggle to keep a search query open.",
@@ -30571,6 +30583,9 @@
           }
         }
       }
+    },
+    "Pick how much of Thaw you want to see in settings. Every feature keeps working either way." : {
+      "comment" : "Subtitle of the onboarding Simple-or-Full choice step."
     },
     "Post-apply" : {
       "comment" : "Label for the \"Post-apply\" hook.",
@@ -38601,6 +38616,9 @@
         }
       }
     },
+    "Show setting descriptions" : {
+      "comment" : "A toggle in General settings controlling whether explanatory captions appear below settings rows."
+    },
     "Show the %@ icon in the menu bar. Click to show hidden items, double-click for always-hidden, and right-click for settings." : {
       "comment" : "Toggle that lets the user decide whether to show the \\(Constants.displayName) icon in the menu bar.",
       "localizations" : {
@@ -38839,6 +38857,9 @@
         }
       }
     },
+    "Shows only the essential settings. All features keep working and keep their configuration." : {
+      "comment" : "Annotation under the Simple Mode toggle in General settings."
+    },
     "Signed by: %@" : {
       "comment" : "A team identifier, if available.",
       "localizations" : {
@@ -38957,6 +38978,12 @@
           }
         }
       }
+    },
+    "Simple" : {
+      "comment" : "Card title for choosing Simple Mode during onboarding."
+    },
+    "Simple Mode" : {
+      "comment" : "A toggle that hides advanced panes from the settings window without disabling any features."
     },
     "Smart" : {
       "comment" : "Localized string key for the \"Smart\" rehide strategy.",
@@ -47006,6 +47033,9 @@
           }
         }
       }
+    },
+    "You can change this anytime in General settings." : {
+      "comment" : "Footnote under the onboarding Simple-or-Full choice."
     },
     "You can remove apps from this list at any time to revoke their access." : {
       "comment" : "A description of how to remove apps from the whitelist.",

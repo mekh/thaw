@@ -88,8 +88,17 @@ final class SearchModel: ObservableObject {
 
         let fuseResults = fuse.searchSync(query, in: searchItems, by: \.properties)
 
-        let scored = fuseResults.map { result in
-            (item: searchItems[result.index], diffScore: result.diffScore)
+        // Simple Mode trims hidden panes' rows from the results so search
+        // matches the sidebar. Read per query so a mode change mid-session
+        // is reflected without rebuilding the corpus.
+        let simpleMode = Defaults.bool(forKey: .simpleMode)
+
+        let scored = fuseResults.compactMap { result -> (item: SearchItem, diffScore: Double)? in
+            let item = searchItems[result.index]
+            if simpleMode, !item.entry.pane.isVisibleInSimpleMode {
+                return nil
+            }
+            return (item: item, diffScore: result.diffScore)
         }
 
         // Rank globally by relevance, then group by pane preserving the rank
