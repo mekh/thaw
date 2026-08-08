@@ -21,4 +21,23 @@ final class AppNavigationState: ObservableObject {
     @Published var isSearchPresented = false
     @Published var settingsNavigationIdentifier: SettingsNavigationIdentifier = .general
     @Published var requestedSettingsDisclosure: SettingsDisclosure?
+
+    private var cancellables = Set<AnyCancellable>()
+
+    init() {
+        // Reopen settings on the pane the user last used. A pane that Simple
+        // Mode hides would restore an unselectable sidebar row, so fall back
+        // to the default (General) in that case.
+        if let rawValue = Defaults.string(forKey: .lastSettingsPane),
+           let pane = SettingsNavigationIdentifier(rawValue: rawValue),
+           !Defaults.bool(forKey: .simpleMode) || pane.isVisibleInSimpleMode {
+            settingsNavigationIdentifier = pane
+        }
+        $settingsNavigationIdentifier
+            .dropFirst()
+            .sink { pane in
+                Defaults.set(pane.rawValue, forKey: .lastSettingsPane)
+            }
+            .store(in: &cancellables)
+    }
 }

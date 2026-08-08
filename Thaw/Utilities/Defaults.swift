@@ -228,6 +228,7 @@ extension Defaults {
         case customIceIconIsTemplate = "CustomIceIconIsTemplate"
         case simpleMode = "SimpleMode"
         case showSettingDescriptions = "ShowSettingDescriptions"
+        case lastSettingsPane = "LastSettingsPane"
         case useIceBar = "UseIceBar"
         case useIceBarOnlyOnNotchedDisplay = "UseIceBarOnlyOnNotchedDisplay"
         case iceBarLocation = "IceBarLocation"
