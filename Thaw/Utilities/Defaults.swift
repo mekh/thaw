@@ -148,6 +148,7 @@ extension Defaults {
         static let customIceIconIsTemplate = false
         static let simpleMode = false
         static let showSettingDescriptions = true
+        static let lockThawBarPosition = true
         static let useIceBar = false
         static let useIceBarOnlyOnNotchedDisplay = false
         static let iceBarLocation: IceBarLocation = .dynamic
@@ -231,6 +232,7 @@ extension Defaults {
         case lastSettingsPane = "LastSettingsPane"
         case menuBarItemAlertReveals = "MenuBarItemAlertReveals"
         case menuBarAppearanceSpaceOverrides = "MenuBarAppearanceSpaceOverrides"
+        case lockThawBarPosition = "LockThawBarPosition"
         case useIceBar = "UseIceBar"
         case useIceBarOnlyOnNotchedDisplay = "UseIceBarOnlyOnNotchedDisplay"
         case iceBarLocation = "IceBarLocation"

@@ -15,6 +15,7 @@ struct ToolsSettingsPane: View {
 
     @State private var currentLogFileName: String?
     @State private var pendingAction: MaintenanceToolAction?
+    @State private var languageOverrideChanged = false
     @State private var isBusy = false
     @State private var statusMessage: String?
     @State private var errorMessage: String?
@@ -28,6 +29,9 @@ struct ToolsSettingsPane: View {
                 systemImage: "info.circle.fill",
                 tint: .blue
             )
+            // A bare child of the grouped Form still gets a row card; clear
+            // it so the pill renders "alone" like section-footer pills.
+            .listRowBackground(Color.clear)
 
             IceSection("Diagnostics") {
                 diagnosticLogging
@@ -40,6 +44,9 @@ struct ToolsSettingsPane: View {
                 ) {
                     appState.isOnboardingPresented = true
                 }
+            }
+            IceSection("Language") {
+                languageRow
             }
             IceSection("Reset") {
                 toolRow(
@@ -187,6 +194,84 @@ struct ToolsSettingsPane: View {
                 }
             }
         }
+    }
+
+    /// Sentinel for following the system language (no override).
+    private static let systemLanguageTag = "system"
+
+    /// The app's per-app language override, via the standard `AppleLanguages`
+    /// mechanism. Not a `Defaults.Key` — the key name is owned by macOS.
+    private var currentLanguageOverride: String {
+        (UserDefaults.standard.array(forKey: "AppleLanguages") as? [String])?.first
+            ?? Self.systemLanguageTag
+    }
+
+    @ViewBuilder
+    private var languageRow: some View {
+        let localizations = Bundle.main.localizations
+            .filter { $0 != "Base" }
+            .sorted { lhs, rhs in
+                displayName(forLanguage: lhs) < displayName(forLanguage: rhs)
+            }
+
+        IcePicker(
+            "App language",
+            selection: Binding(
+                get: { currentLanguageOverride },
+                set: { newValue in
+                    if newValue == Self.systemLanguageTag {
+                        UserDefaults.standard.removeObject(forKey: "AppleLanguages")
+                    } else {
+                        UserDefaults.standard.set([newValue], forKey: "AppleLanguages")
+                    }
+                    languageOverrideChanged = true
+                }
+            )
+        ) {
+            Text("System Default").tag(Self.systemLanguageTag)
+            ForEach(localizations, id: \.self) { code in
+                Text(displayName(forLanguage: code)).tag(code)
+            }
+        }
+        .annotation("Use \(Constants.displayName) in a different language than the system. Takes effect after a relaunch.")
+
+        if languageOverrideChanged {
+            HStack {
+                Text("The language change applies after \(Constants.displayName) relaunches.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("Relaunch Now") {
+                    relaunchApp()
+                }
+            }
+        }
+    }
+
+    /// The language's own name for itself (endonym), falling back to the code.
+    private func displayName(forLanguage code: String) -> String {
+        let locale = Locale(identifier: code)
+        return locale.localizedString(forIdentifier: code)?.localizedCapitalized ?? code
+    }
+
+    private func relaunchApp() {
+        // Terminate first, reopen after: launching a second instance while
+        // this one is still alive races teardown and can leave multiple
+        // copies running. The detached shell outlives the app, waits for
+        // this PID to exit, and only then opens the bundle again.
+        // Foundation Process rather than the Subprocess package on purpose —
+        // Subprocess ties the child's lifetime to the awaiting task, which
+        // dies with the app before the relaunch could fire.
+        let pid = ProcessInfo.processInfo.processIdentifier
+        let bundlePath = Bundle.main.bundlePath
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = [
+            "-c",
+            "while /bin/kill -0 \(pid) 2>/dev/null; do /bin/sleep 0.1; done; /usr/bin/open \"\(bundlePath)\"",
+        ]
+        try? process.run()
+        NSApp.terminate(nil)
     }
 
     private func toolRow(

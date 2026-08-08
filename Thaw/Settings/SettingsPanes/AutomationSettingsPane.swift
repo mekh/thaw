@@ -70,7 +70,7 @@ struct AutomationSettingsPane: View {
         IceSection {
             Toggle("Enable Settings URI Scheme", isOn: $settings.isSettingsURIEnabled)
                 .annotation("Allow external applications to read and modify \(Constants.displayName) settings via thaw:// URLs.")
-
+        } footer: {
             if !settings.isSettingsURIEnabled {
                 SettingsWarningPill(
                     title: "Settings URI disabled",

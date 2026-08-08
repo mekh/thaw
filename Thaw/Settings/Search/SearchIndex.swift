@@ -54,12 +54,6 @@ nonisolated struct SearchEntry: Identifiable, @unchecked Sendable {
              "advanced.menuBarOrderFulfillmentTimeout",
              "advanced.useLCSSortingOnNotchedDisplays":
             .advancedLayoutControls
-        case "advanced.showOnHoverDelay",
-             "general.showOnClick",
-             "general.showOnDoubleClick",
-             "general.showOnHover",
-             "general.showOnScroll":
-            .emptyMenuBarArea
         default:
             nil
         }
@@ -302,6 +296,17 @@ nonisolated enum SearchIndex {
             sectionText: nil,
             keywords: ["simple", "mode", "basic", "essential", "minimal", "advanced", "hide"],
             property: .general("simpleMode")
+        ),
+        SearchEntry(
+            id: "general.lockThawBarPosition",
+            titleKey: "Lock \(Constants.displayName) Bar position",
+            titleText: "Lock \(Constants.displayName) Bar position",
+            descriptionText: "Keep the \(Constants.displayName) Bar pinned in place instead of draggable.",
+            pane: .displays,
+            sectionKey: "Global",
+            sectionText: "Global",
+            keywords: ["lock", "drag", "move", "pin", "bar", "position"],
+            property: .general("lockThawBarPosition")
         ),
         SearchEntry(
             id: "general.showSettingDescriptions",
@@ -642,6 +647,17 @@ nonisolated enum SearchIndex {
             sectionText: "Diagnostics",
             keywords: ["diagnostic", "logging", "debug", "logs", "troubleshoot", "tools"],
             property: .advanced("enableDiagnosticLogging")
+        ),
+        SearchEntry(
+            id: "tools.appLanguage",
+            titleKey: "App language",
+            titleText: "App language",
+            descriptionText: "Use the app in a different language than the system.",
+            pane: .tools,
+            sectionKey: "Language",
+            sectionText: "Language",
+            keywords: ["language", "locale", "translation", "localization", "override"],
+            property: nil
         ),
         SearchEntry(
             id: "tools.resetAllSettings",

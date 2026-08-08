@@ -91,6 +91,11 @@ final class IceBarPanel: NSPanel {
     /// Sets up the panel.
     func performSetup(with appState: AppState) {
         self.appState = appState
+        appState.settings.general.$lockThawBarPosition
+            .sink { [weak self] locked in
+                self?.isMovableByWindowBackground = !locked
+            }
+            .store(in: &cancellables)
         configureCancellables()
         colorManager.performSetup(with: self)
     }

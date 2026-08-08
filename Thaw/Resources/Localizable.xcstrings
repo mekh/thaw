@@ -4470,6 +4470,9 @@
         }
       }
     },
+    "App language" : {
+      "comment" : "Label for the per-app language picker in the Tools pane."
+    },
     "Appearance" : {
       "comment" : "The localized string key for the \"Appearance\" section in the \"Settings\" interface.",
       "localizations" : {
@@ -11185,6 +11188,9 @@
     "Clear search" : {
 
     },
+    "Click" : {
+      "comment" : "Segment in the empty-area gesture multi-select: reveal on click."
+    },
     "Click an empty area of the menu bar to show hidden menu bar items." : {
       "comment" : "Toggle that allows the user to enable or disable the feature of showing hidden menu bar items by clicking on an empty area of the menu bar.",
       "localizations" : {
@@ -13942,6 +13948,9 @@
           }
         }
       }
+    },
+    "Display" : {
+      "comment" : "Label for the display picker in the Displays pane."
     },
     "Display images of individual menu bar items." : {
       "comment" : "Descriptive detail for the \"Screen Recording\" permission, describing the app's ability to display images of individual menu bar items.",
@@ -20911,6 +20920,9 @@
     "Hotkeys & Automation" : {
       "comment" : "Title of the hotkeys and automation onboarding slide."
     },
+    "Hover" : {
+      "comment" : "Segment in the empty-area gesture multi-select: reveal on hover."
+    },
     "Hover over an empty area of the menu bar to show hidden menu bar items." : {
       "comment" : "Text displayed in a toggle that allows the user to enable or disable the feature of showing hidden menu bar items by hovering over an empty area of the menu bar.",
       "localizations" : {
@@ -23320,6 +23332,12 @@
         }
       }
     },
+    "Keep the %@ Bar pinned in place. Turn off to move it by dragging its background." : {
+      "comment" : "Annotation under the lock-position toggle. %@ is the app name."
+    },
+    "Language" : {
+      "comment" : "Section header in the Tools pane for the app-language override."
+    },
     "Last checked: %@" : {
       "comment" : "A text label displaying the date and time of the last update check. The text is monospaced and has a secondary foreground color. If there is no previous check, the text is hidden.",
       "localizations" : {
@@ -24631,6 +24649,9 @@
           }
         }
       }
+    },
+    "Lock %@ Bar position" : {
+      "comment" : "Toggle in Displays settings pinning the Thaw Bar in place. %@ is the app name."
     },
     "macOS 27 preferred" : {
       "comment" : "Small pill next to the menu bar layout reset tool marking it as the preferred reset on macOS 27."
@@ -30251,6 +30272,9 @@
     "Paint your menu bar your way. Choose solid colors, gradients, and custom shapes, then add shadows and borders for a polished finish." : {
       "comment" : "Description of the menu bar appearance onboarding slide."
     },
+    "Per display" : {
+      "comment" : "Section header in the Displays pane for the selected display controls."
+    },
     "Per-Profile Hooks" : {
       "comment" : "A heading for the hooks that apply only to a specific profile.",
       "localizations" : {
@@ -31816,6 +31840,9 @@
     },
     "Rehide interval" : {
 
+    },
+    "Relaunch Now" : {
+      "comment" : "Button that relaunches the app to apply the language change."
     },
     "Remove %@ from whitelist" : {
       "comment" : "A label for a button that removes an app from the whitelist. The argument is the name of the app.",
@@ -35668,6 +35695,9 @@
         }
       }
     },
+    "Scroll" : {
+      "comment" : "Segment in the empty-area gesture multi-select: reveal on scroll."
+    },
     "Scroll or swipe in the menu bar to show hidden menu bar items." : {
       "comment" : "Label for a toggle that enables or disables showing hidden menu bar items when scrolling or swiping in the menu bar.",
       "localizations" : {
@@ -37583,6 +37613,12 @@
           }
         }
       }
+    },
+    "Show hidden items on" : {
+      "comment" : "Label for the multi-select control choosing which gestures reveal hidden items in an empty menu bar area."
+    },
+    "Show hidden menu bar items by clicking, hovering, or scrolling in an empty area of the menu bar." : {
+      "comment" : "Annotation under the empty-area gesture multi-select."
     },
     "Show hidden menu bar items in a separate bar below the menu bar on this display." : {
       "comment" : "Label for a toggle that allows the user to enable or disable the display bar on a specific display.",
@@ -40339,6 +40375,9 @@
         }
       }
     },
+    "System Default" : {
+      "comment" : "Picker option: follow the system language, no per-app override."
+    },
     "Temporarily shown item delay" : {
 
     },
@@ -41424,6 +41463,9 @@
           }
         }
       }
+    },
+    "The language change applies after %@ relaunches." : {
+      "comment" : "Note shown after changing the app language. %@ is the app name."
     },
     "These hooks run only when this profile is applied, after the global pre-hook and before the global post-hook." : {
       "comment" : "A description of the hooks that run only when a profile is applied.",
@@ -45148,6 +45190,9 @@
           }
         }
       }
+    },
+    "Use %@ in a different language than the system. Takes effect after a relaunch." : {
+      "comment" : "Annotation under the app-language picker. %@ is the app name."
     },
     "Use Current Appearance for This Space" : {
       "comment" : "Button saving the shared appearance as the active Space override."

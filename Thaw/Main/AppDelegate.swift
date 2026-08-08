@@ -60,7 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Debug-only overflow spacer (chevron-herding experiment).
         // Inert unless `Thaw.debugOverflowSpacerWidth` is set to a positive
         // width; observes the default live so no relaunch is needed.
-        OverflowSpacerExperiment.shared.performSetup(with: appState)
+        OverflowSpacer.shared.performSetup(with: appState)
 
         // Register thaw:// URL events early so external tools (e.g. Raycast)
         // can trigger actions even when Thaw is not currently in the foreground;

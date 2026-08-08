@@ -132,13 +132,9 @@ private struct LayoutSectionOptions: View {
     let isHidingUnavailable: Bool
 
     var body: some View {
-        IceSection("Sections") {
-            if isHidingUnavailable {
-                SettingsWarningPill(
-                    title: "Hiding unavailable",
-                    message: "This macOS build is missing the system capability Thaw needs to hide items. Reordering still works; hiding does not."
-                )
-            }
+        IceSection {
+            Text("Sections")
+        } content: {
             Toggle(
                 "Enable the always-hidden section",
                 isOn: $settings.enableAlwaysHiddenSection
@@ -147,6 +143,13 @@ private struct LayoutSectionOptions: View {
                 ForEach(SectionDividerStyle.allCases) { style in
                     Text(style.localized).tag(style)
                 }
+            }
+        } footer: {
+            if isHidingUnavailable {
+                SettingsWarningPill(
+                    title: "Hiding unavailable",
+                    message: "This macOS build is missing the system capability Thaw needs to hide items. Reordering still works; hiding does not."
+                )
             }
         }
     }
@@ -178,22 +181,6 @@ private struct LayoutBarsSection: View {
                         .foregroundStyle(.secondary)
                 }
 
-                // A refused group move snaps back with no other explanation, so
-                // the reason appears here rather than in a modal that would
-                // cover the very bars the user is arranging.
-                if let refusal = appState.layoutFeedback.refusal {
-                    SettingsWarningPill(
-                        title: LocalizedStringKey(refusal.title),
-                        message: LocalizedStringKey(refusal.message),
-                        systemImage: "exclamationmark.triangle.fill",
-                        tint: .orange,
-                        actionTitle: "Dismiss"
-                    ) {
-                        appState.layoutFeedback.clear()
-                    }
-                    .transition(reduceMotion ? .identity : .opacity)
-                }
-
                 VStack(spacing: 20) {
                     ForEach(MenuBarSection.Name.allCases, id: \.self) { section in
                         if let menuBarSection = appState.menuBarManager.section(withName: section), menuBarSection.isEnabled {
@@ -217,6 +204,22 @@ private struct LayoutBarsSection: View {
                             .transition(layoutTransition)
                     }
                 }
+            }
+        } footer: {
+            // A refused group move snaps back with no other explanation, so
+            // the reason appears here rather than in a modal that would
+            // cover the very bars the user is arranging.
+            if let refusal = appState.layoutFeedback.refusal {
+                SettingsWarningPill(
+                    title: LocalizedStringKey(refusal.title),
+                    message: LocalizedStringKey(refusal.message),
+                    systemImage: "exclamationmark.triangle.fill",
+                    tint: .orange,
+                    actionTitle: "Dismiss"
+                ) {
+                    appState.layoutFeedback.clear()
+                }
+                .transition(reduceMotion ? .identity : .opacity)
             }
         }
         .task(id: hasItems) {

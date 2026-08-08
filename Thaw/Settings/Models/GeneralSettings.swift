@@ -41,6 +41,10 @@ final class GeneralSettings: ObservableObject {
     /// explanatory captions below rows.
     @Published var showSettingDescriptions = Defaults.DefaultValue.showSettingDescriptions
 
+    /// A Boolean value that indicates whether the Thaw Bar is pinned in
+    /// place instead of being draggable by its background (#758).
+    @Published var lockThawBarPosition = Defaults.DefaultValue.lockThawBarPosition
+
     // MARK: - Deprecated (Per-Display Migration)
 
     // These properties are kept for one release cycle for downgrade safety.
@@ -122,6 +126,7 @@ final class GeneralSettings: ObservableObject {
         Defaults.ifPresent(key: .customIceIconIsTemplate, assign: &customIceIconIsTemplate)
         Defaults.ifPresent(key: .simpleMode, assign: &simpleMode)
         Defaults.ifPresent(key: .showSettingDescriptions, assign: &showSettingDescriptions)
+        Defaults.ifPresent(key: .lockThawBarPosition, assign: &lockThawBarPosition)
         Defaults.ifPresent(key: .useIceBar, assign: &useIceBar)
         Defaults.ifPresent(key: .useIceBarOnlyOnNotchedDisplay, assign: &useIceBarOnlyOnNotchedDisplay)
         Defaults.ifPresent(key: .iceBarLocationOnHotkey, assign: &iceBarLocationOnHotkey)
@@ -185,6 +190,7 @@ final class GeneralSettings: ObservableObject {
         $customIceIconIsTemplate.persistToDefaults(key: .customIceIconIsTemplate, in: &c)
         $simpleMode.persistToDefaults(key: .simpleMode, in: &c)
         $showSettingDescriptions.persistToDefaults(key: .showSettingDescriptions, in: &c)
+        $lockThawBarPosition.persistToDefaults(key: .lockThawBarPosition, in: &c)
         $useIceBar.persistToDefaults(key: .useIceBar, in: &c)
         $useIceBarOnlyOnNotchedDisplay.persistToDefaults(key: .useIceBarOnlyOnNotchedDisplay, in: &c)
         $iceBarLocation.persistToDefaults(key: .iceBarLocation, transform: \.rawValue, in: &c)
@@ -229,6 +235,8 @@ final class GeneralSettings: ObservableObject {
                 simpleMode = boolValue
             case "showSettingDescriptions" where showSettingDescriptions != boolValue:
                 showSettingDescriptions = boolValue
+            case "lockThawBarPosition" where lockThawBarPosition != boolValue:
+                lockThawBarPosition = boolValue
             case "useIceBar" where useIceBar != boolValue:
                 useIceBar = boolValue
             case "useIceBarOnlyOnNotchedDisplay" where useIceBarOnlyOnNotchedDisplay != boolValue:

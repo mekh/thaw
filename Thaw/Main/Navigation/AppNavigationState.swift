@@ -13,7 +13,6 @@ import Combine
 final class AppNavigationState: ObservableObject {
     nonisolated enum SettingsDisclosure: Hashable {
         case advancedLayoutControls
-        case emptyMenuBarArea
     }
 
     @Published var isAppFrontmost = false

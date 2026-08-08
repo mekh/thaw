@@ -1,5 +1,5 @@
 //
-//  OverflowSpacerExperiment.swift
+//  OverflowSpacer.swift
 //  Project: Thaw
 //
 //  Copyright (Ice) © 2023–2025 Jordan Baird
@@ -22,7 +22,7 @@ import MenuBarModel
 ///     defaults write com.stonerl.Thaw.debug Thaw.debugOverflowSpacerWidth -float 300
 ///
 /// The width is observed live — sweep it with repeated `defaults write` calls
-/// and watch the `OverflowSpacerExperiment` log category: after each change the
+/// and watch the `OverflowSpacer` log category: after each change the
 /// experiment waits for the bar to settle, then probes the native overflow
 /// control via the same AX read the section controller uses and logs where (or
 /// whether) the chevron landed alongside the spacer's own frame. Set the width
@@ -32,8 +32,8 @@ import MenuBarModel
 /// notch, which `Thaw.debugSimulateNotch` cannot do — the simulation is
 /// Thaw-side only and macOS never overflows for it.
 @MainActor
-final class OverflowSpacerExperiment {
-    static let shared = OverflowSpacerExperiment()
+final class OverflowSpacer {
+    static let shared = OverflowSpacer()
 
     /// Set by `performSetup(with:)`; used by the probe to read the spacer's
     /// real placement from the item cache — on macOS 27 the app-side status
@@ -47,7 +47,7 @@ final class OverflowSpacerExperiment {
     /// but never laid out (frame height 0) — Thaw's own hiding ate it.
     private static let spacerAutosaveName = "Thaw.ControlItem.OverflowSpacer"
 
-    private let diagLog = DiagLog(category: "OverflowSpacerExperiment")
+    private let diagLog = DiagLog(category: "OverflowSpacer")
     private var statusItem: NSStatusItem?
     private var cancellable: AnyCancellable?
     private var probeTask: Task<Void, Never>?
