@@ -54,6 +54,12 @@ nonisolated struct SearchEntry: Identifiable, @unchecked Sendable {
              "advanced.menuBarOrderFulfillmentTimeout",
              "advanced.useLCSSortingOnNotchedDisplays":
             .advancedLayoutControls
+        case "advanced.showOnHoverDelay",
+             "general.showOnClick",
+             "general.showOnDoubleClick",
+             "general.showOnHover",
+             "general.showOnScroll":
+            .emptyMenuBarArea
         default:
             nil
         }

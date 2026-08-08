@@ -13,6 +13,8 @@ struct GeneralSettingsPane: View {
     @EnvironmentObject var appState: AppState
     @ObservedObject var settings: GeneralSettings
     @ObservedObject var advancedSettings: AdvancedSettings
+    @ObservedObject var navigationState: AppNavigationState
+    @State private var isEmptyAreaExpanded = false
     @State private var isImportingCustomIceIcon = false
     @State private var isPresentingError = false
     @State private var presentedError: LocalizedErrorWrapper?
@@ -31,8 +33,20 @@ struct GeneralSettingsPane: View {
             IceSection("\(Constants.displayName) icon") {
                 iceIconOptions
             }
-            IceSection("Empty menu bar area") {
-                emptyAreaOptions
+            // Disclosure as a form row (Hotkeys pattern) — collapsed by
+            // default; settings search auto-expands it when a result inside
+            // is selected.
+            IceSection {
+                DisclosureGroup("Empty menu bar area", isExpanded: $isEmptyAreaExpanded) {
+                    emptyAreaOptions
+                }
+            }
+            .onChange(of: navigationState.requestedSettingsDisclosure, initial: true) { _, _ in
+                guard SettingsSearchNavigation.consumeDisclosure(
+                    .emptyMenuBarArea,
+                    navigationState: navigationState
+                ) else { return }
+                isEmptyAreaExpanded = true
             }
             IceSection("While rearranging") {
                 showAllSectionsOnUserDrag

@@ -185,7 +185,8 @@ struct SettingsView: View {
         case .general:
             GeneralSettingsPane(
                 settings: appState.settings.general,
-                advancedSettings: appState.settings.advanced
+                advancedSettings: appState.settings.advanced,
+                navigationState: navigationState
             )
         case .menuBarLayout:
             MenuBarLayoutSettingsPane(itemManager: appState.itemManager)

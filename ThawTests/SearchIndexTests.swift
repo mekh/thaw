@@ -89,6 +89,17 @@ final class SearchIndexTests: XCTestCase {
         XCTAssertEqual(itemOverflow.disclosure, .advancedLayoutControls)
         XCTAssertEqual(lcsSorting.disclosure, .advancedLayoutControls)
 
+        for id in [
+            "general.showOnClick",
+            "general.showOnDoubleClick",
+            "general.showOnHover",
+            "general.showOnScroll",
+            "advanced.showOnHoverDelay",
+        ] {
+            let entry = try XCTUnwrap(SearchIndex.entries.first { $0.id == id })
+            XCTAssertEqual(entry.disclosure, .emptyMenuBarArea, "\(id) should open the empty-area disclosure")
+        }
+
         if #available(macOS 27, *) {
             let appIcons = try XCTUnwrap(SearchIndex.entries.first { $0.id == "advanced.alwaysUseAppIconForMenuBarItems" })
             let timeout = try XCTUnwrap(SearchIndex.entries.first { $0.id == "advanced.menuBarOrderFulfillmentTimeout" })
