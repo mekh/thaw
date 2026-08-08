@@ -24620,6 +24620,9 @@
         }
       }
     },
+    "macOS 27 preferred" : {
+      "comment" : "Small pill next to the menu bar layout reset tool marking it as the preferred reset on macOS 27."
+    },
     "macOS prohibits \"%@\" from being moved." : {
       "comment" : "The text that appears below the main message text in the alert displayed when a menu bar item is not movable.",
       "localizations" : {

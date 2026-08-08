@@ -66,6 +66,7 @@ struct ToolsSettingsPane: View {
                 if #available(macOS 27, *) {
                     toolRow(
                         title: "Reset menu bar layout positions",
+                        badge: "macOS 27 preferred",
                         detail: "Delete every saved status item position from the system's menu bar host and restart it, so the layout rebuilds from scratch. A backup is saved first. Use this when items refuse to return to the menu bar after rearranging.",
                         buttonTitle: "Reset Layout Positions",
                         role: .destructive
@@ -190,6 +191,7 @@ struct ToolsSettingsPane: View {
 
     private func toolRow(
         title: LocalizedStringKey,
+        badge: LocalizedStringKey? = nil,
         detail: LocalizedStringKey,
         buttonTitle: LocalizedStringKey,
         role: ButtonRole? = nil,
@@ -197,7 +199,19 @@ struct ToolsSettingsPane: View {
     ) -> some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
+                HStack(spacing: 6) {
+                    Text(title)
+                    if let badge {
+                        Text(badge)
+                            .font(.system(size: 10, weight: .medium))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1)
+                            .background {
+                                Capsule().fill(.quaternary)
+                            }
+                            .foregroundStyle(.blue)
+                    }
+                }
                 Text(detail)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
