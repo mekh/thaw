@@ -229,6 +229,7 @@ extension Defaults {
         case simpleMode = "SimpleMode"
         case showSettingDescriptions = "ShowSettingDescriptions"
         case lastSettingsPane = "LastSettingsPane"
+        case menuBarItemAlertReveals = "MenuBarItemAlertReveals"
         case useIceBar = "UseIceBar"
         case useIceBarOnlyOnNotchedDisplay = "UseIceBarOnlyOnNotchedDisplay"
         case iceBarLocation = "IceBarLocation"
@@ -296,7 +297,7 @@ extension Defaults {
         case debugOverlayParkedMode = "Thaw.debugOverlayParkedMode"
         /// Width in points of the debug overflow spacer status item
         /// (chevron-herding experiment). 0 or absent = no spacer. See
-        /// `OverflowSpacerExperiment`.
+        /// `OverflowSpacer`.
         case debugOverflowSpacerWidth = "Thaw.debugOverflowSpacerWidth"
         /// Covers the native macOS 27 overflow chevron with a menu-bar-matched
         /// strip. See `MenuBarChevronCover`. Off by default while it

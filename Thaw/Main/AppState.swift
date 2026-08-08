@@ -50,6 +50,9 @@ final class AppState: ObservableObject {
     /// Global cache for menu bar item images.
     let imageCache = MenuBarItemImageCache()
 
+    /// Reveals concealed items temporarily when their icon changes.
+    let alertRevealWatcher = MenuBarItemAlertRevealWatcher()
+
     /// Owner of user-authored menu bar item groups.
     let itemGroupManager = MenuBarItemGroupManager()
 
@@ -141,6 +144,7 @@ final class AppState: ObservableObject {
         NSScreen.invalidateMenuBarHeightCache()
         diagLog.debug("setupTask: starting imageCache setup")
         imageCache.performSetup(with: self)
+        alertRevealWatcher.performSetup(with: self)
         diagLog.debug("setupTask: imageCache setup complete")
         updatesManager.performSetup(with: self)
         userNotificationManager.performSetup(with: self)

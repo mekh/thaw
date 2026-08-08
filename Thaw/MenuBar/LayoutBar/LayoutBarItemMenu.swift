@@ -101,7 +101,27 @@ enum LayoutBarItemMenu {
             addGroupEntries(to: menu, group: group, orderedItems: orderedItems, manager: manager)
         }
 
+        if case let .item(item) = subject {
+            addAlertRevealEntry(to: menu, item: item)
+        }
+
         return menu.items.isEmpty ? nil : menu
+    }
+
+    /// Adds the "reveal on icon change" toggle. The menu only exists on the
+    /// macOS 27 backend (guarded above), which is also where the section
+    /// controller's per-item temporary reveal lives.
+    private static func addAlertRevealEntry(to menu: NSMenu, item: MenuBarItem) {
+        if !menu.items.isEmpty {
+            menu.addItem(.separator())
+        }
+        let identifier = item.tag.tagIdentifier
+        let isEnabled = MenuBarItemAlertReveals.contains(identifier)
+        let entry = ClosureMenuItem(title: String(localized: "Reveal When Its Icon Changes")) {
+            MenuBarItemAlertReveals.setEnabled(!isEnabled, for: identifier)
+        }
+        entry.state = isEnabled ? .on : .off
+        menu.addItem(entry)
     }
 
     // MARK: Non-member

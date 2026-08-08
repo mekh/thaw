@@ -34097,6 +34097,9 @@
         }
       }
     },
+    "Reveal When Its Icon Changes" : {
+      "comment" : "Context-menu toggle on a menu bar item: temporarily reveal the item when its icon changes while hidden."
+    },
     "Right aligned" : {
       "comment" : "Localized string key for the right-aligned Thaw Bar location.",
       "localizations" : {
