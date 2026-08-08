@@ -142,6 +142,10 @@ final class UpdatesManager: NSObject, ObservableObject {
     func performSetup(with appState: AppState) {
         self.appState = appState
         _ = updaterController
+        // A `SUFeedURL` user-defaults entry would otherwise take precedence
+        // over Info.plist and silently redirect update checks; the delegate's
+        // `feedURLString(for:)` already ignores it, this just scrubs the key.
+        updater.clearFeedURLFromUserDefaults()
         configureCancellables()
     }
 
@@ -198,6 +202,16 @@ extension UpdatesManager: SPUUpdaterDelegate {
         }
         // If somehow Sparkle asks before our sheet, block and let our UI drive the choice.
         return false
+    }
+
+    /// Pins the appcast feed to the URL declared in Info.plist.
+    ///
+    /// Without this, Sparkle resolves the feed as user defaults → Info.plist,
+    /// so a stray `defaults write com.stonerl.Thaw SUFeedURL …` (or any
+    /// process writing to the app's defaults) could point update checks at a
+    /// foreign server. Answering from the delegate short-circuits that lookup.
+    func feedURLString(for _: SPUUpdater) -> String? {
+        Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") as? String
     }
 
     /// Determines which update channels are allowed.
