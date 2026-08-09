@@ -13,6 +13,7 @@ import PlatformRuntimeKit
 
 /// A container for the items in the menu bar layout interface.
 final class LayoutBarContainer: NSView {
+    private static let diagLog = DiagLog(category: "LayoutBarContainer")
     /// Visual styling for the background drawn behind a same-bundle cluster.
     private enum GroupChrome {
         static let cornerRadius: CGFloat = 7
@@ -565,6 +566,52 @@ final class LayoutBarContainer: NSView {
                 newViews.append(existingView)
             } else {
                 let view = LayoutBarItemView(appState: appState, item: item)
+                newViews.append(view)
+            }
+        }
+
+        // Governable extras that are pref-removed have no live AX element, so
+        // the hidden bars would silently drop them. Stand in a placeholder
+        // slot per assigned-but-absent extra so the assignment stays visible.
+        if #available(macOS 27, *), section != .visible,
+           let sectionController = appState.menuBarManager.sectionController {
+            let liveIdentifiers = Set(
+                items.map { MenuBarItemTag.canonicalPersistentIdentifier($0.uniqueIdentifier) }
+            )
+            let placeholders = sectionController.sectionAssignment
+                .filter { $0.value == section }
+                .keys
+                .compactMap { identifier -> LayoutOpaqueSlotDescriptor? in
+                    let canonical = MenuBarItemTag.canonicalPersistentIdentifier(identifier)
+                    guard !liveIdentifiers.contains(canonical),
+                          let title = RuntimeModuleController.governableMenuExtraTitle(
+                              forItemIdentifier: canonical
+                          )
+                    else { return nil }
+                    return .governableExtra(
+                        menuExtraTitle: title,
+                        displayName: LayoutOpaqueSlotDescriptor.governableExtraDisplayName(
+                            forMenuExtraTitle: title
+                        )
+                    )
+                }
+                .sorted { $0.title < $1.title }
+            let assignedHere = sectionController.sectionAssignment.filter { $0.value == section }
+            LayoutBarContainer.diagLog.debug(
+                "governable placeholders (\(section.logString)): assigned=\(assignedHere.count) " +
+                    "live=\(liveIdentifiers.count) placeholders=\(placeholders.count) " +
+                    "[\(placeholders.map(\.title).joined(separator: ", "))]"
+            )
+            for descriptor in placeholders {
+                let view = arrangedViews.first(where: {
+                    if case let .opaqueSlot(existing) = $0.kind {
+                        return existing == descriptor
+                    }
+                    return false
+                }) ?? LayoutOpaqueSlotView(
+                    descriptor: descriptor,
+                    runningApplications: runningApplications
+                )
                 newViews.append(view)
             }
         }

@@ -52,6 +52,13 @@ extension RuntimeSessionController: RuntimeSessionControllering {}
 protocol RuntimeModuleControlling: AnyObject {
     @discardableResult
     func apply(hiddenMenuExtraTitles titles: Set<String>) -> Bool
+
+    @discardableResult
+    func apply(
+        assignedHiddenTitles: Set<String>,
+        currentlyRevealedTitles: Set<String>,
+        minimumFlipInterval: TimeInterval
+    ) -> Bool
 }
 
 extension RuntimeModuleController: RuntimeModuleControlling {}
@@ -258,6 +265,33 @@ final class MenuBarSectionController: ObservableObject {
     /// backend input.
     private let ccModuleManager: RuntimeModuleControlling
 
+    /// A reveal transition changes the CC-module target, but the target only
+    /// flips after a settle period — and a quiet reveal produces no further
+    /// refresh ticks to re-evaluate it. Follow-up refreshes cover that gap.
+    private var revealFollowUpTask: Task<Void, Never>?
+
+    private func scheduleRevealFollowUpRefresh() {
+        revealFollowUpTask?.cancel()
+        revealFollowUpTask = Task { @MainActor [weak self] in
+            for delay: Double in [1.6, 1.2] {
+                try? await Task.sleep(for: .seconds(delay))
+                guard let self, !Task.isCancelled else { return }
+                refresh()
+                // A bare `refresh()` re-evaluates the restrictions but does not
+                // re-walk AX or re-capture glyphs. When the follow-up is
+                // covering a MenuBarAgent/Control Center host restart, the
+                // items' AX children disappeared during the restart and the
+                // image cache fell back to the "unresolved" app icon; the only
+                // way to recover the real glyphs is a full cache walk. Nudge
+                // the item manager so it re-enumerates and the image cache
+                // re-runs its capture pass against the now-restarted host.
+                if let itemManager = self.appState?.itemManager {
+                    await itemManager.cacheItemsRegardless(skipRecentMoveCheck: true)
+                }
+            }
+        }
+    }
+
     /// Off-screen CGS window hider. When the experimental window
     /// hiding flag is on, third-party items are hidden by moving their windows
     /// off-screen via CGS instead of the assessment-mode assertion, so hiding one
@@ -385,11 +419,19 @@ final class MenuBarSectionController: ObservableObject {
         configureRecoveryDriver()
         startRuntimeStateObservers()
         restorePersistedConcealmentAtLaunch()
+        restoreSnapshotsAtLaunch()
     }
 
     /// The `uniqueIdentifier → owner bundle ID` map last written to disk, so the
     /// per-tick persistence only touches `UserDefaults` when the map changed.
     private var lastPersistedConcealBundleIDMap: [String: String] = [:]
+
+    /// The last JSON `Data` written for ``snapshots``, so the per-tick path only
+    /// re-encodes and writes when the snapshot dictionary actually changed. The
+    /// payload is `[uniqueIdentifier: MenuBarItem]` JSON, restored at cold launch
+    /// so the macOS 27 re-bucket pass can resurrect concealed slots in the layout
+    /// editor before any AX walk sees them.
+    private var lastPersistedSnapshotsData: Data?
 
     /// Persists the backend's learned identifier→bundle map so the *next* launch
     /// can conceal the last-known hidden items before its first AX walk. Cheap:
@@ -401,6 +443,31 @@ final class MenuBarSectionController: ObservableObject {
         guard map != lastPersistedConcealBundleIDMap else { return }
         lastPersistedConcealBundleIDMap = map
         UserDefaults.standard.set(map, forKey: Defaults.Key.menuBarConcealBundleIDMap.rawValue)
+    }
+
+    /// Persists the current ``snapshots`` to `UserDefaults` so the next cold
+    /// launch can re-hydrate them. A concealed item has no live AX element, so
+    /// unless the snapshots survive the relaunch the macOS 27 re-bucket pass
+    /// has nothing to resurrect and the hidden/always-hidden bars come up
+    /// empty. Writes only when the JSON encoding changed since the last write.
+    private func persistSnapshotsIfChanged() {
+        guard #available(macOS 27, *) else { return }
+        guard !snapshots.isEmpty else {
+            if lastPersistedSnapshotsData != nil {
+                UserDefaults.standard.removeObject(forKey: Defaults.Key.menuBarConcealSnapshots.rawValue)
+                lastPersistedSnapshotsData = nil
+            }
+            return
+        }
+        let encoder = JSONEncoder()
+        do {
+            let data = try encoder.encode(snapshots)
+            guard data != lastPersistedSnapshotsData else { return }
+            lastPersistedSnapshotsData = data
+            UserDefaults.standard.set(data, forKey: Defaults.Key.menuBarConcealSnapshots.rawValue)
+        } catch {
+            diagLog.warning("persistSnapshotsIfChanged: encoding failed: \(error.localizedDescription)")
+        }
     }
 
     /// Optimistic cold-start restore: replays the last-known concealment from the
@@ -426,6 +493,35 @@ final class MenuBarSectionController: ObservableObject {
         diagLog.info(
             "cold-start conceal restore: \(didApply ? "applied" : "no-op") from \(map.count) known owner(s)"
         )
+    }
+
+    /// Cold-start hydration of ``snapshots`` from `UserDefaults`. Concealed
+    /// items are absent from the first AX walk (the assertion is applied before
+    /// the walk by ``restorePersistedConcealmentAtLaunch``), so the in-memory
+    /// snapshot dictionary would otherwise start out empty — and the macOS 27
+    /// re-bucket pass that runs on the live cache would have nothing to
+    /// resurrect, leaving the hidden/always-hidden bars blank until the user
+    /// reveals the section. Restoring the disk snapshot first lets the layout
+    /// editor render every assigned slot at launch.
+    private func restoreSnapshotsAtLaunch() {
+        guard #available(macOS 27, *) else { return }
+        guard let data = UserDefaults.standard.data(forKey: Defaults.Key.menuBarConcealSnapshots.rawValue) else {
+            return
+        }
+        let decoder = JSONDecoder()
+        do {
+            let restored = try decoder.decode([String: MenuBarItem].self, from: data)
+            // Only carry over identifiers that are still assigned to a hidden
+            // section. The persisted snapshot may include items a profile reset
+            // moved back to visible, or items the user uninstalled since; both
+            // must not reappear in the hidden bars.
+            let assigned = assignmentIncludingAutomaticOverflow
+            snapshots = restored.filter { assigned[$0.key] != nil && assigned[$0.key] != .visible }
+            lastPersistedSnapshotsData = data
+            diagLog.info("cold-start snapshot restore: \(snapshots.count) slot(s) hydrated")
+        } catch {
+            diagLog.warning("restoreSnapshotsAtLaunch: decoding failed: \(error.localizedDescription)")
+        }
     }
 
     isolated deinit {
@@ -1282,6 +1378,20 @@ final class MenuBarSectionController: ObservableObject {
         }
     }
 
+    /// Whether items assigned to `section` are currently on screen because of
+    /// a temporary reveal. Mirrors the reveal semantics used by the assertion:
+    /// revealing Always-Hidden also reveals Hidden.
+    private func sectionIsCurrentlyRevealed(_ section: MenuBarSection.Name) -> Bool {
+        switch section {
+        case .visible:
+            true
+        case .hidden:
+            revealedSection == .hidden || revealedSection == .alwaysHidden
+        case .alwaysHidden:
+            revealedSection == .alwaysHidden
+        }
+    }
+
     /// Assignment map to use for the live assertion while a section is revealed.
     static func effectiveSectionAssignment(
         _ assignment: [String: MenuBarSection.Name],
@@ -1349,6 +1459,7 @@ final class MenuBarSectionController: ObservableObject {
             }
         }
         revealedSection = target
+        scheduleRevealFollowUpRefresh()
         diagLog.info("show(\(target.rawValue)); temporarily revealing assigned item(s)")
         // Restriction apply must stay synchronous with the reveal flag. Deferring
         // it let a rapid follow-up click hide (and cancel the pending refresh)
@@ -1394,6 +1505,7 @@ final class MenuBarSectionController: ObservableObject {
         let previous = revealedSection
         revealedSection = nil
         lastRefreshSignature = nil
+        scheduleRevealFollowUpRefresh()
         diagLog.info("hideRevealedSections(previous=\(previous?.rawValue ?? "none"))")
         refresh()
     }
@@ -2034,6 +2146,16 @@ final class MenuBarSectionController: ObservableObject {
             moved.append(identifier)
         }
         guard !moved.isEmpty else { return nil }
+        // Retain the live items before refresh conceals them. The single-item
+        // setSection(_:item:) overload does this in Self.updatedSnapshots — the
+        // batch path used to skip it, so a group move into Hidden lost every
+        // member's snapshot the moment refresh hid them, and the re-bucket pass
+        // had nothing to resurrect, dropping the items from the layout editor.
+        if section != .visible {
+            for item in items where moved.contains(MenuBarItemTag.canonicalPersistentIdentifier(item.uniqueIdentifier)) {
+                snapshots = Self.updatedSnapshots(snapshots, afterAssigning: item, to: section)
+            }
+        }
         commitOrder(reason: "setSection(\(section.rawValue)) batch \(moved.count) item(s)")
         diagLog.info(
             "setSection(\(section.rawValue)) batch \(moved.count) item(s); \(sectionAssignment.count) assigned"
@@ -2388,7 +2510,9 @@ final class MenuBarSectionController: ObservableObject {
         // made every Thaw-icon click restart Control Center and rapid clicks
         // thrashed it to empty. So a temporary reveal leaves CC modules as-is —
         // they show/hide only on a real assignment change (drag to/from Hidden).
+        let revealFollowingEnabled = Defaults.bool(forKey: .enableExperimentalRevealSystemExtras)
         var ccHiddenTitles = Set<String>()
+        var ccRevealedTitles = Set<String>()
         for (identifier, section) in assignmentIncludingOverflow where section != .visible {
             // Focus and Now Playing are routed here too, not only to the
             // position backend. Preferred-position weights merely reorder on a
@@ -2403,9 +2527,27 @@ final class MenuBarSectionController: ObservableObject {
             // actually changes, so this never fires on the 1 Hz refresh.
             if let title = RuntimeModuleController.governableMenuExtraTitle(forItemIdentifier: identifier) {
                 ccHiddenTitles.insert(title)
+                if revealFollowingEnabled, sectionIsCurrentlyRevealed(section) {
+                    ccRevealedTitles.insert(title)
+                }
             }
         }
-        ccModuleManager.apply(hiddenMenuExtraTitles: ccHiddenTitles)
+        let didChangeCCModules = ccModuleManager.apply(hiddenMenuExtraTitles: ccHiddenTitles)
+        if didChangeCCModules {
+            // Writing the per-host Control Center prefs restarts the system menu
+            // bar host (MenuBarAgent/Control Center). The restart transiently
+            // blanks every hosted extra's glyph, drops AX children, and resets
+            // the 1 Hz `lastRefreshSignature` so a stable state never re-walks —
+            // leaving Sound/Clock/Siri/… stuck on the "unresolved" app-icon
+            // fallback and the layout editor unable to show or move them. The
+            // prefs watcher only observes `TrailingItemPreferredPositions`, so
+            // it does not cover this host restart. Schedule follow-up refreshes
+            // (sharing the reveal-follow-up task so they coalesce) so the AX
+            // walk re-enumerates the host once it has settled and the image
+            // cache re-captures the system glyphs.
+            scheduleRevealFollowUpRefresh()
+            diagLog.info("cc module apply changed; scheduled follow-up refresh(es) after host restart")
+        }
 
         // Strip CC modules from the backend input regardless of
         // reveal state (they are handled by their dedicated managers above).
@@ -2450,6 +2592,7 @@ final class MenuBarSectionController: ObservableObject {
             )
         }
         persistConcealBundleIDMapIfChanged()
+        persistSnapshotsIfChanged()
         if didChangeRestriction {
             appState.itemManager.noteRestrictionChange()
             if hasConcealedItems {

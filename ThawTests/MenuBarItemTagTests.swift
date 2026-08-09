@@ -454,10 +454,12 @@ final class MenuBarItemTagTests: XCTestCase {
             throw XCTSkip("MenuBarAgent policy is macOS 27-specific")
         }
 
+        // CC-governable modules (Wi-Fi, AirDrop, …) have a real hiding path
+        // and are NOT forced visible; only ungovernable children are.
         let wifi = MenuBarItemTag(namespace: .menuBarAgent, title: "com.apple.menuextra.wifi")
         let unknown = MenuBarItemTag(namespace: .menuBarAgent, title: "Item-0")
 
-        XCTAssertEqual(wifi.sectionManagementPolicy, .forcedVisible)
+        XCTAssertNotEqual(wifi.sectionManagementPolicy, .forcedVisible)
         XCTAssertEqual(unknown.sectionManagementPolicy, .forcedVisible)
     }
 
@@ -615,8 +617,9 @@ final class MenuBarItemTagTests: XCTestCase {
         XCTAssertFalse(siri.canBeHidden)
         XCTAssertTrue(siri.sectionManagementPolicy.isVisibleInLayout)
 
-        XCTAssertEqual(wifi.sectionManagementPolicy, .forcedVisible)
-        XCTAssertFalse(wifi.canBeHidden)
+        // Wi-Fi is CC-governable: hideable via its per-host preference.
+        XCTAssertNotEqual(wifi.sectionManagementPolicy, .forcedVisible)
+        XCTAssertTrue(wifi.canBeHidden)
         XCTAssertEqual(weather.sectionManagementPolicy, .forcedVisible)
         XCTAssertFalse(weather.canBeHidden)
 
@@ -1143,14 +1146,12 @@ final class MacOS27LayoutAnchorOrderingTests: XCTestCase {
     func testSanitizedAssignmentRejectsNonGovernableMenuBarAgentModulesWithoutLiveItems() {
         let sound = MenuBarItemTag(namespace: .menuBarAgent, title: "Sound").tagIdentifier
         let displays = MenuBarItemTag(namespace: .menuBarAgent, title: "com.apple.menuextra.displays").tagIdentifier
-        let wifi = MenuBarItemTag(namespace: .menuBarAgent, title: "com.apple.menuextra.wifi").tagIdentifier
         let unknown = MenuBarItemTag(namespace: .menuBarAgent, title: "Item-0").tagIdentifier
 
         let sanitized = MenuBarSectionController.sanitizedSectionAssignment(
             [
                 sound: .hidden,
                 displays: .alwaysHidden,
-                wifi: .hidden,
                 unknown: .hidden,
             ],
             experimentalSystemItemHiding: false
@@ -1158,8 +1159,31 @@ final class MacOS27LayoutAnchorOrderingTests: XCTestCase {
 
         XCTAssertNil(sanitized[sound])
         XCTAssertNil(sanitized[displays])
-        XCTAssertNil(sanitized[wifi])
         XCTAssertNil(sanitized[unknown])
+    }
+
+    /// Control-Center-governable extras (Wi‑Fi, Bluetooth, AirDrop, Now Playing,
+    /// Focus, User Switcher) have a real hiding path through their per-host
+    /// preference and are NOT `forcedVisible`. Their Hidden assignment must
+    /// survive sanitizing regardless of the experimental system-item toggle.
+    @MainActor
+    func testSanitizedAssignmentKeepsControlCenterGovernableExtrasWithoutExperimentalHiding() {
+        let wifi = MenuBarItemTag(namespace: .menuBarAgent, title: "com.apple.menuextra.wifi").tagIdentifier
+        let bluetooth = MenuBarItemTag(namespace: .menuBarAgent, title: "com.apple.menuextra.bluetooth").tagIdentifier
+        let focus = MenuBarItemTag(namespace: .menuBarAgent, title: "com.apple.menuextra.focusmode").tagIdentifier
+
+        let sanitized = MenuBarSectionController.sanitizedSectionAssignment(
+            [
+                wifi: .hidden,
+                bluetooth: .hidden,
+                focus: .alwaysHidden,
+            ],
+            experimentalSystemItemHiding: false
+        )
+
+        XCTAssertEqual(sanitized[wifi], .hidden)
+        XCTAssertEqual(sanitized[bluetooth], .hidden)
+        XCTAssertEqual(sanitized[focus], .alwaysHidden)
     }
 
     /// The "hide native macOS items" toggle exists to reach exactly these
@@ -1536,6 +1560,73 @@ final class MacOS27LayoutAnchorOrderingTests: XCTestCase {
 
         XCTAssertEqual(snapshots[shottr.uniqueIdentifier]?.tag, shottr.tag)
         XCTAssertEqual(snapshots[shottr.uniqueIdentifier]?.bounds, shottr.bounds)
+    }
+
+    // The macOS 27 cold-launch snapshot restore relies on `MenuBarItem` and
+    // `MenuBarItemTag` surviving a JSON round-trip. If a stored property ever
+    // becomes non-`Codable` (a new non-`Sendable`/non-`Codable` member, or a
+    // raw `CGWindowID` change), `restoreSnapshotsAtLaunch` would silently
+    // decode `[:]` and the layout editor's hidden bars would come up empty
+    // every relaunch — exactly the regression these tests guard against.
+    func testMenuBarItemRoundTripsThroughJSONCoder() throws {
+        let tag = MenuBarItemTag(
+            namespace: .string("com.example.app"),
+            title: "Item-0",
+            windowID: 42,
+            instanceIndex: 1
+        )
+        let item = MenuBarItem.fixture(
+            tag: tag,
+            windowID: 42,
+            bounds: CGRect(x: 120, y: 0, width: 24, height: 22),
+            sourcePID: 1234,
+            ownerPID: 4321
+        )
+
+        let data = try JSONEncoder().encode(item)
+        let decoded = try JSONDecoder().decode(MenuBarItem.self, from: data)
+
+        XCTAssertEqual(decoded.tag, tag)
+        XCTAssertEqual(decoded.windowID, 42)
+        XCTAssertEqual(decoded.ownerPID, 4321)
+        XCTAssertEqual(decoded.sourcePID, 1234)
+        XCTAssertEqual(decoded.bounds, item.bounds)
+        XCTAssertEqual(decoded.title, item.title)
+        XCTAssertEqual(decoded.isOnScreen, item.isOnScreen)
+    }
+
+    func testMenuBarTagNamespaceRoundTripsThroughJSONCoder() throws {
+        let cases: [MenuBarItemTag.Namespace] = [
+            .null,
+            .string("com.example.app"),
+            .uuid(try XCTUnwrap(UUID(uuidString: "DEADBEEF-0000-1111-2222-333333333333"))),
+        ]
+        for ns in cases {
+            let data = try JSONEncoder().encode(ns)
+            let decoded = try JSONDecoder().decode(MenuBarItemTag.Namespace.self, from: data)
+            XCTAssertEqual(decoded, ns)
+        }
+    }
+
+    func testSnapshotsDictionaryRoundTripsThroughJSONCoder() throws {
+        // Mirrors the MenuBarSectionController.persistSnapshotsIfChanged payload:
+        // [uniqueIdentifier: MenuBarItem]. The round-trip has to preserve every
+        // field the rebucket consumer reads — the cold-launch hydration depends
+        // on it producing real layout-bar slots from a persisted dict.
+        let shottr = appItem(
+            bundleID: "cc.ffitch.shottr",
+            title: "Item-0",
+            x: 120,
+            windowID: 1519
+        )
+        let snapshots = [shottr.uniqueIdentifier: shottr]
+
+        let data = try JSONEncoder().encode(snapshots)
+        let decoded = try JSONDecoder().decode([String: MenuBarItem].self, from: data)
+
+        XCTAssertEqual(decoded.count, 1)
+        XCTAssertEqual(decoded[shottr.uniqueIdentifier]?.tag, shottr.tag)
+        XCTAssertEqual(decoded[shottr.uniqueIdentifier]?.bounds, shottr.bounds)
     }
 
     @MainActor

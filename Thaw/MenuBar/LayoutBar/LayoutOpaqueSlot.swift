@@ -32,6 +32,37 @@ nonisolated struct LayoutOpaqueSlotDescriptor: Equatable {
     let tooltip: String
     let accessibilityLabel: String
 
+    /// A placeholder for a Control-Center-governable menu extra whose
+    /// preference currently removes it from the bar entirely: there is no
+    /// live AX element to render, but the assignment intent must stay
+    /// visible in the editor instead of the item looking deleted.
+    static func governableExtra(menuExtraTitle: String, displayName: String) -> Self {
+        Self(
+            runtimePositionKey: "governable:\(menuExtraTitle)",
+            bundleIdentifier: "com.apple.controlcenter",
+            title: displayName,
+            badgeSystemImage: "eye.slash",
+            badgeReason: String(localized: "Removed while hidden"),
+            tooltip: String(
+                localized: "\(displayName) is removed from the menu bar while its section is hidden. Reveal the section to show it; it is removed again on conceal."
+            ),
+            accessibilityLabel: String(localized: "\(displayName), removed while hidden")
+        )
+    }
+
+    /// Human name for a governable menu-extra title.
+    static func governableExtraDisplayName(forMenuExtraTitle title: String) -> String {
+        switch title {
+        case "com.apple.menuextra.airdrop": String(localized: "AirDrop")
+        case "com.apple.menuextra.bluetooth": String(localized: "Bluetooth")
+        case "com.apple.menuextra.wifi": String(localized: "Wi‑Fi")
+        case "com.apple.menuextra.now-playing": String(localized: "Now Playing")
+        case "com.apple.menuextra.user": String(localized: "Fast User Switching")
+        case "com.apple.menuextra.focusmode": String(localized: "Focus")
+        default: title
+        }
+    }
+
     static func littleSnitch(
         runningBundleIdentifiers: Set<String>,
         positions: [String: Int]

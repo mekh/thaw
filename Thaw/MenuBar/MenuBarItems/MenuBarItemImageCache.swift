@@ -1846,9 +1846,13 @@ final class MenuBarItemImageCache: ObservableObject, @unchecked Sendable {
                 // boxes long after the bar has settled. Skip without recording a
                 // failure so the item retains its last good image and recovers on
                 // the next refresh cycle.
-                if item.tag.isHidingUnsupported {
+                // System-hosted items get the same treatment: CC-pref flips
+                // (module hide/restore) reflow the whole system side of the
+                // bar, transiently blanking every extra's glyph. Clearing on
+                // those blanks left all extras stuck on app-icon fallbacks.
+                if item.tag.isHidingUnsupported || item.tag.isNonConcealableSystemItem {
                     MenuBarItemImageCache.diagLog.debug(
-                        "axBoundsCapture: blank image for denylisted hiding-unsupported \(item.logString); " +
+                        "axBoundsCapture: blank image for reflow-transient \(item.logString); " +
                             "skipping without failure (will recover on next refresh)"
                     )
                     result.excluded.append(item)

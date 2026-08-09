@@ -14,7 +14,7 @@ import os.lock
 /// This is the pure-data subset of the app's `MenuBarItem` — it excludes
 /// everything that requires live enumeration (AX/XPC) or persisted state
 /// (`Defaults`-backed custom names), which stay behind in the app target.
-public struct MenuBarItem: CustomStringConvertible, Sendable {
+public struct MenuBarItem: CustomStringConvertible, Sendable, Codable {
     /// The tag associated with this item.
     public let tag: MenuBarItemTag
 

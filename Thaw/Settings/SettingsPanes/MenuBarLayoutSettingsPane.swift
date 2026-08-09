@@ -7,6 +7,7 @@
 //  Licensed under the GNU GPLv3
 
 import MenuBarModel
+import PlatformRuntimeKit
 import SwiftUI
 import ThawCapture
 
@@ -54,6 +55,9 @@ struct MenuBarLayoutSettingsPane: View {
                 isHidingUnavailable: isHidingUnavailable
             )
             LayoutSpacersSection(spacerManager: appState.spacerManager)
+            if #available(macOS 27, *) {
+                LayoutSystemExtrasSection()
+            }
             LayoutIconPreviewControls(settings: appState.settings.advanced)
 
             if canArrangeLayout {
@@ -152,6 +156,68 @@ private struct LayoutSectionOptions: View {
                     message: "This macOS build is missing the system capability Thaw needs to hide items. Reordering still works; hiding does not."
                 )
             }
+        }
+    }
+}
+
+/// Direct show/remove toggles for the Control-Center-governable menu extras
+/// (AirDrop, Now Playing, user switcher, Focus, …). These are the system items
+/// macOS 27's restriction allowlist cannot address individually; the per-host
+/// preference is the only lever, and it is binary: shown or removed.
+@available(macOS 27, *)
+private struct LayoutSystemExtrasSection: View {
+    private let moduleController = RuntimeModuleController()
+
+    @State private var hiddenTitles: Set<String> = Set(
+        Defaults.stringArray(forKey: .hiddenSystemMenuExtras) ?? []
+    )
+
+    private var governableModules: [SystemMenuBarModule] {
+        SystemMenuBarModuleCatalog.all.filter { $0.controlCenterMenuExtraTitle != nil }
+    }
+
+    var body: some View {
+        IceSection {
+            Text("System menu extras")
+        } content: {
+            ForEach(governableModules, id: \.name) { module in
+                if let title = module.controlCenterMenuExtraTitle {
+                    Toggle(
+                        displayName(for: module.name),
+                        isOn: Binding(
+                            get: { !hiddenTitles.contains(title) },
+                            set: { shown in
+                                if shown {
+                                    hiddenTitles.remove(title)
+                                } else {
+                                    hiddenTitles.insert(title)
+                                }
+                                Defaults.set(hiddenTitles.sorted(), forKey: .hiddenSystemMenuExtras)
+                                moduleController.apply(hiddenMenuExtraTitles: hiddenTitles)
+                            }
+                        )
+                    )
+                }
+            }
+        } footer: {
+            SettingsWarningPill(
+                title: "Removed, not hidden",
+                message: "macOS 27 cannot tuck these items into a hidden section. Turning one off removes it from the menu bar entirely until you turn it back on; applying a change restarts the system menu bar host.",
+                systemImage: "info.circle.fill",
+                tint: .blue
+            )
+        }
+    }
+
+    private func displayName(for moduleName: String) -> String {
+        switch moduleName {
+        case "AirDrop": String(localized: "AirDrop")
+        case "Bluetooth": String(localized: "Bluetooth")
+        case "WiFi": String(localized: "Wi‑Fi")
+        case "NowPlaying": String(localized: "Now Playing")
+        case "UserSwitcher": String(localized: "Fast User Switching")
+        case "FocusModes": String(localized: "Focus")
+        default: moduleName
         }
     }
 }

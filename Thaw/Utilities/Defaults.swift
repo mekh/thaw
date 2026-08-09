@@ -234,6 +234,8 @@ extension Defaults {
         case menuBarAppearanceSpaceOverrides = "MenuBarAppearanceSpaceOverrides"
         case lockThawBarPosition = "LockThawBarPosition"
         case menuBarSpacers = "MenuBarSpacers"
+        case hiddenSystemMenuExtras = "HiddenSystemMenuExtras"
+        case enableExperimentalRevealSystemExtras = "EnableExperimentalRevealSystemExtras"
         case useIceBar = "UseIceBar"
         case useIceBarOnlyOnNotchedDisplay = "UseIceBarOnlyOnNotchedDisplay"
         case iceBarLocation = "IceBarLocation"
@@ -355,6 +357,15 @@ extension Defaults {
         /// flashing every icon for the ~3 s the cold walk takes. Reconciled by
         /// the first live restriction pass. Managed by ``MenuBarSectionController``.
         case menuBarConcealBundleIDMap = "MenuBarConcealBundleIDMap"
+
+        /// JSON-encoded `[uniqueIdentifier: MenuBarItem]` snapshot of every
+        /// assigned-but-concealed item at the last session's end. Re-hydrated at
+        /// cold launch so the macOS 27 re-bucket pass can resurrect hidden slots
+        /// in the layout editor before any AX walk sees them — without this, a
+        /// concealed item has no live AX element and the hidden/always-hidden
+        /// bars come up empty until the user reveals the section. Managed by
+        /// ``MenuBarSectionController``.
+        case menuBarConcealSnapshots = "MenuBarConcealSnapshots"
 
         /// Seconds an accessibility message may block before it fails.
         ///

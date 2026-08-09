@@ -55,6 +55,15 @@ final class MenuBarSectionControllerTests: XCTestCase {
             applyCallCount += 1
             return false
         }
+
+        func apply(
+            assignedHiddenTitles _: Set<String>,
+            currentlyRevealedTitles _: Set<String>,
+            minimumFlipInterval _: TimeInterval
+        ) -> Bool {
+            applyCallCount += 1
+            return false
+        }
     }
 
     final class FakeRuntimeWindowController: RuntimeWindowControlling {

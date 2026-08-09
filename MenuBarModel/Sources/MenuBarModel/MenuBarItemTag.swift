@@ -12,7 +12,7 @@ import Foundation
 // MARK: - MenuBarItemTag
 
 /// An identifier for a menu bar item.
-public struct MenuBarItemTag: Hashable, CustomStringConvertible, Sendable {
+public struct MenuBarItemTag: Hashable, CustomStringConvertible, Sendable, Codable {
     /// How an item participates in Thaw's section model.
     ///
     /// This value is the classification authority shared by hiding, section
@@ -122,12 +122,15 @@ public struct MenuBarItemTag: Hashable, CustomStringConvertible, Sendable {
         }
     }
 
-    /// A MenuBarAgent-hosted item that must remain in Visible. The two
-    /// position-manageable Control Center extras are the exception; all other
-    /// children remain assignment-only because macOS 27 owns them as one
-    /// system-hosted family.
+    /// A MenuBarAgent-hosted item that must remain in Visible. The
+    /// position-manageable extras and the Control-Center-governable modules
+    /// are the exceptions — both have real hiding paths; all other children
+    /// remain assignment-only because macOS 27 owns them as one system-hosted
+    /// family.
     public var isMenuBarAgentItemForcedVisible: Bool {
-        namespace == .menuBarAgent && !isPositionManageableMenuBarAgentItem
+        namespace == .menuBarAgent
+            && !isPositionManageableMenuBarAgentItem
+            && !isControlCenterGovernable
     }
 
     /// Whether a persisted `namespace:title[:instance]` identifier names a
@@ -136,7 +139,18 @@ public struct MenuBarItemTag: Hashable, CustomStringConvertible, Sendable {
     /// while preserving Focus and Now Playing assignments.
     public static func isMenuBarAgentForcedVisibleIdentifier(_ identifier: String) -> Bool {
         let prefix = "\(Namespace.menuBarAgent.description):"
-        return identifier.hasPrefix(prefix) && !isPositionManageableMenuBarAgentIdentifier(identifier)
+        guard identifier.hasPrefix(prefix) else { return false }
+        if isPositionManageableMenuBarAgentIdentifier(identifier) {
+            return false
+        }
+        // CC-governable modules have a real hiding path (their per-host
+        // preference), so a persisted Hidden assignment for them is intent,
+        // not a stale entry to migrate away.
+        let title = String(identifier.dropFirst(prefix.count).split(separator: ":").first ?? "")
+        if SystemMenuBarModuleCatalog.controlCenterKeysByMenuExtraTitle[title] != nil {
+            return false
+        }
+        return true
     }
 
     /// iStat Menus status-item bundle ID for the direct-download build. Titles
@@ -678,7 +692,7 @@ public extension MenuBarItemTag {
 
 public extension MenuBarItemTag {
     /// A type that represents a menu bar item namespace.
-    enum Namespace: Hashable, CustomStringConvertible, Sendable {
+    enum Namespace: Hashable, CustomStringConvertible, Sendable, Codable {
         /// The `null` namespace.
         case null
         /// A namespace represented by a string.
