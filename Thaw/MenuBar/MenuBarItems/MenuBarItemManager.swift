@@ -7397,6 +7397,30 @@ extension MenuBarItemManager {
             guard !self.isInStartupSettling else { return }
             guard !self.isRestoringItemOrder else { return }
 
+            // Same gate `applySavedLayout` consults, for the same reason.
+            // This dispatch already feeds the streak through
+            // `recordBulkApplyOutcome`, but until now nothing read it here,
+            // so a bar whose batches never complete re-sorted on every
+            // late arrival forever. In #899 that ran seven passes in 22
+            // seconds — each one a full move batch with the cursor
+            // hijacked — until the reporter killed the app.
+            //
+            // A late-arrival re-sort is automatic, so it belongs under the
+            // gate. User-initiated applies still bypass it: `applyProfile`
+            // calls `applyProfileLayout` directly and never comes through
+            // here.
+            guard Self.automaticBulkApplyPermitted(
+                consecutiveUnfinishedBatches: self.consecutiveUnfinishedBulkApplies,
+                lastUnfinishedBatchAt: self.unfinishedMoveBatchObservedAt,
+                now: .now
+            ) else {
+                MenuBarItemManager.diagLog.warning(
+                    "Profile re-sort: skipping, \(self.consecutiveUnfinishedBulkApplies) consecutive bulk applies ended with unenacted moves; cooling down before another attempt"
+                )
+                self.profileResortTask = nil
+                return
+            }
+
             MenuBarItemManager.diagLog.info("Profile re-sort: re-applying layout for late-arriving items")
             // Clear profileResortTask BEFORE calling applyProfileLayout,
             // because applyProfileLayout cancels profileResortTask to
