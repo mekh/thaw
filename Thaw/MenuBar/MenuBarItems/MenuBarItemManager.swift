@@ -8329,15 +8329,54 @@ extension MenuBarItemManager {
                     case .rightOf: .rightOfItem(anchorItem)
                     case .leftOf: .leftOfItem(anchorItem)
                     }
-                    MenuBarItemManager.diagLog.debug("Profile layout: moving H_ctrl → \(dest.logString)")
-                    didAttemptHCtrl = true
-                    do {
-                        try await move(item: hItem, to: dest, skipInputPause: true)
-                        movedCount += 1
-                        try? await Task.sleep(for: .milliseconds(200))
-                    } catch {
+                    if !LayoutSolver.isOnScreen(bounds: hItem.bounds, screenFrames: screenFrames) {
+                        // The divider itself has to be on screen for the drag
+                        // to land. #881 excluded parked *anchors*; a parked
+                        // H_ctrl fails the same way from the other side — the
+                        // drag point is on screen so the owner accepts the
+                        // events, but AppKit still snaps the divider back to
+                        // its autosave position on mouse-up, and every attempt
+                        // reports "events succeeded but item not at
+                        // destination" for the full budget (#899). The
+                        // per-item LCS pass below repositions items without
+                        // needing the divider to travel.
                         unenactedMoveCount += 1
-                        MenuBarItemManager.diagLog.error("Profile layout: failed to move H_ctrl: \(error)")
+                        MenuBarItemManager.diagLog.warning(
+                            "Profile layout: H_ctrl is parked offscreen (minX=\(hItem.bounds.minX)), skipping the boundary move"
+                        )
+                    } else if failureLedger.isUnderBackoff(for: hItem) {
+                        // Same governance the per-item moves below already get.
+                        // Without it a boundary move that cannot land is retried
+                        // in full by every re-sort — eight drags a pass, a pass
+                        // every few seconds, for as long as the mismatch stands.
+                        // In #899 that ran until the user killed the app.
+                        unenactedMoveCount += 1
+                        MenuBarItemManager.diagLog.warning(
+                            "Profile layout: H_ctrl under move-failure backoff, skipping"
+                        )
+                    } else {
+                        MenuBarItemManager.diagLog.debug("Profile layout: moving H_ctrl → \(dest.logString)")
+                        didAttemptHCtrl = true
+                        do {
+                            try await move(item: hItem, to: dest, skipInputPause: true)
+                            movedCount += 1
+                            failureLedger.recordSuccess(for: hItem)
+                            try? await Task.sleep(for: .milliseconds(200))
+                        } catch {
+                            unenactedMoveCount += 1
+                            // A move cancelled by a newer apply says nothing
+                            // about the divider, and recording it would earn
+                            // H_ctrl a backoff window it did not deserve —
+                            // the same rule the LCS pass applies below.
+                            if Task.isCancelled {
+                                MenuBarItemManager.diagLog.debug(
+                                    "Profile layout: H_ctrl move interrupted by a newer apply; leaving it unrecorded"
+                                )
+                            } else {
+                                failureLedger.recordFailure(for: hItem, kind: Self.failureKind(of: error))
+                                MenuBarItemManager.diagLog.error("Profile layout: failed to move H_ctrl: \(error)")
+                            }
+                        }
                     }
                 }
             } else {
